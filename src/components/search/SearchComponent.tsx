@@ -309,8 +309,8 @@ export function SearchComponent({
                 >
                   <option value="">All statuses</option>
                   <option value="todo">To Do</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="completed">Completed</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="done">Done</option>
                   <option value="archived">Archived</option>
                 </select>
               </div>
@@ -326,10 +326,10 @@ export function SearchComponent({
                   className="w-full border rounded px-2 py-1 text-sm"
                 >
                   <option value="">All priorities</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                  <option value="none">None</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                  <option value="None">None</option>
                 </select>
               </div>
             )}

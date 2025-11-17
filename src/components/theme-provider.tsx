@@ -1,3 +1,5 @@
+'use client'
+
 import { createContext, useContext, useEffect, useState } from 'react'
 
 type Theme = 'dark' | 'light' | 'system'
@@ -32,11 +34,22 @@ export function ThemeProvider({
   disableTransitionOnChange = false,
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
-  )
+  const [theme, setTheme] = useState<Theme>(defaultTheme)
 
   useEffect(() => {
+    // Only access localStorage on the client side
+    if (typeof window !== 'undefined') {
+      const storedTheme = localStorage.getItem(storageKey) as Theme
+      if (storedTheme) {
+        setTheme(storedTheme)
+      }
+    }
+  }, [storageKey])
+
+  useEffect(() => {
+    // Only run on the client side
+    if (typeof window === 'undefined') return
+
     const root = window.document.documentElement
 
     root.classList.remove('light', 'dark')
@@ -57,7 +70,10 @@ export function ThemeProvider({
   const value = {
     theme,
     setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme)
+      // Only access localStorage on the client side
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(storageKey, theme)
+      }
       setTheme(theme)
     },
   }

@@ -39,8 +39,8 @@ import {
 const taskSchema = z.object({
   name: z.string().min(1, 'Task name is required').max(255, 'Task name is too long'),
   description: z.string().max(1000, 'Description is too long').optional(),
-  priority: z.enum(['none', 'low', 'medium', 'high']),
-  status: z.enum(['todo', 'in-progress', 'completed', 'archived']),
+  priority: z.enum(['None', 'Low', 'Medium', 'High']),
+  status: z.enum(['todo', 'in_progress', 'done', 'archived']),
   dueDate: z.date().optional(),
   estimate: z.string().regex(/^\d{2}:\d{2}$/, 'Estimate must be in HH:mm format').optional(),
   actualTime: z.string().regex(/^\d{2}:\d{2}$/, 'Actual time must be in HH:mm format').optional(),
@@ -85,9 +85,9 @@ export function TaskForm({
   const [formData, setFormData] = useState({
     name: task?.name || '',
     description: task?.description || '',
-    priority: task?.priority || 'none',
+    priority: task?.priority || 'None',
     status: task?.status || 'todo',
-    dueDate: task?.dueDate ? new Date(task.dueDate) : undefined,
+    dueDate: task?.deadline ? new Date(task.deadline) : undefined,
     estimate: task?.estimate || '',
     actualTime: task?.actualTime || '',
     isRecurring: task?.isRecurring || false,
@@ -153,16 +153,16 @@ export function TaskForm({
   };
 
   const priorityOptions = [
-    { value: 'none', label: 'No priority', color: 'bg-gray-500' },
-    { value: 'low', label: 'Low priority', color: 'bg-green-500' },
-    { value: 'medium', label: 'Medium priority', color: 'bg-yellow-500' },
-    { value: 'high', label: 'High priority', color: 'bg-red-500' },
+    { value: 'None', label: 'No priority', color: 'bg-gray-500' },
+    { value: 'Low', label: 'Low priority', color: 'bg-green-500' },
+    { value: 'Medium', label: 'Medium priority', color: 'bg-yellow-500' },
+    { value: 'High', label: 'High priority', color: 'bg-red-500' },
   ];
 
   const statusOptions = [
     { value: 'todo', label: 'To Do' },
-    { value: 'in-progress', label: 'In Progress' },
-    { value: 'completed', label: 'Completed' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'done', label: 'Done' },
     { value: 'archived', label: 'Archived' },
   ];
 

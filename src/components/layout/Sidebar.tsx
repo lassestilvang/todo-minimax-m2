@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -15,15 +15,28 @@ import {
   Inbox
 } from 'lucide-react';
 import { useLists } from '@/store/hooks';
+import { useViewTransition } from '@/hooks/use-view-transition';
 import { CreateListData } from '@/types/lists';
 
 interface SidebarProps {
   collapsed?: boolean;
+  currentView?: string;
+  onViewChange?: (view: string) => void;
 }
 
-export function Sidebar({ collapsed = false }: SidebarProps) {
+export function Sidebar({ collapsed = false, currentView, onViewChange }: SidebarProps) {
   const [showCreateList, setShowCreateList] = useState(false);
   const [newListName, setNewListName] = useState('');
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  
+  const { 
+    supportsViewTransition, 
+    withViewTransition, 
+    getTransitionNames, 
+    applyTransitionStyles,
+    cleanupTransitionStyles 
+  } = useViewTransition();
   
   const { 
     lists, 
@@ -37,10 +50,19 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
     if (!newListName.trim()) return;
     
     try {
-      await createList({
-        name: newListName.trim(),
-        color: '#3B82F6', // Default blue
-      });
+      const performListCreation = async () => {
+        await createList({
+          name: newListName.trim(),
+          color: '#3B82F6', // Default blue
+        });
+      };
+
+      if (supportsViewTransition) {
+        await withViewTransition(performListCreation);
+      } else {
+        await performListCreation();
+      }
+      
       setNewListName('');
       setShowCreateList(false);
     } catch (error) {
@@ -50,7 +72,15 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
 
   const handleToggleFavorite = async (listId: string, isFavorite: boolean) => {
     try {
-      await updateList({ id: listId, isFavorite: !isFavorite });
+      const performToggle = async () => {
+        await updateList({ id: listId, isFavorite: !isFavorite });
+      };
+
+      if (supportsViewTransition) {
+        await withViewTransition(performToggle);
+      } else {
+        await performToggle();
+      }
     } catch (error) {
       console.error('Failed to update favorite status:', error);
     }
@@ -59,23 +89,82 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
   const handleDeleteList = async (listId: string) => {
     if (confirm('Are you sure you want to delete this list?')) {
       try {
-        await deleteList(listId);
+        const performDelete = async () => {
+          await deleteList(listId);
+        };
+
+        if (supportsViewTransition) {
+          await withViewTransition(performDelete);
+        } else {
+          await performDelete();
+        }
       } catch (error) {
         console.error('Failed to delete list:', error);
       }
     }
   };
 
+  const handleListClick = useCallback((listName: string) => {
+    if (isTransitioning || !onViewChange) return;
+    
+    setIsTransitioning(true);
+    
+    const performListChange = () => {
+      const element = sidebarRef.current;
+      if (element) {
+        const transitionNames = getTransitionNames('list');
+        
+        if (supportsViewTransition) {
+          // Apply View Transition API styles
+          applyTransitionStyles(element, transitionNames.new, 'new');
+          
+          // Clean up after transition
+          setTimeout(() => {
+            if (element) {
+              cleanupTransitionStyles(element);
+            }
+            setIsTransitioning(false);
+          }, 200);
+        } else {
+          // Fallback for unsupported browsers
+          element.classList.add('view-list-transition');
+          setTimeout(() => {
+            if (element) {
+              element.classList.remove('view-list-transition');
+            }
+            setIsTransitioning(false);
+          }, 200);
+        }
+      }
+      
+      onViewChange(listName.toLowerCase().replace(' ', ''));
+    };
+    
+    if (supportsViewTransition) {
+      withViewTransition(performListChange);
+    } else {
+      performListChange();
+    }
+  }, [isTransitioning, onViewChange, supportsViewTransition, withViewTransition, getTransitionNames, applyTransitionStyles, cleanupTransitionStyles]);
+
   return (
-    <div className="h-full flex flex-col">
+    <div 
+      ref={sidebarRef}
+      className={cn(
+        "h-full flex flex-col view-sidebar view-list-transition",
+        isTransitioning ? "opacity-90" : "opacity-100"
+      )}
+    >
       {/* Inbox List */}
       <div className="p-2">
         <Button
           variant="ghost"
           className={cn(
-            'w-full justify-start gap-2 h-9',
-            collapsed && 'px-2'
+            'w-full justify-start gap-2 h-9 transition-all duration-200',
+            collapsed && 'px-2',
+            currentView === 'today' && 'bg-primary/10 text-primary'
           )}
+          onClick={() => onViewChange?.('today')}
         >
           <Inbox className="h-4 w-4" />
           {!collapsed && (
@@ -109,7 +198,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
 
         {/* Create List Form */}
         {showCreateList && (
-          <Card className="p-2 mb-2">
+          <Card className="p-2 mb-2 view-modal-transition">
             <input
               type="text"
               placeholder="List name..."
@@ -146,15 +235,17 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
           {lists.map((list) => (
             <div
               key={list.id}
-              className="group relative flex items-center gap-2"
+              className="group relative flex items-center gap-2 list-item-transition"
             >
               <Button
                 variant="ghost"
                 className={cn(
-                  'flex-1 justify-start gap-2 h-8',
-                  collapsed && 'px-2'
+                  'flex-1 justify-start gap-2 h-8 transition-all duration-200',
+                  collapsed && 'px-2',
+                  currentView === list.name.toLowerCase().replace(' ', '') && 'bg-primary/10'
                 )}
                 style={{ color: list.color }}
+                onClick={() => handleListClick(list.name)}
               >
                 <span className="text-sm">
                   {list.emoji || '📋'}
@@ -222,7 +313,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
 
       {/* Collapsed List Creation Modal */}
       {collapsed && showCreateList && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center view-modal-transition">
           <Card className="w-80 p-4">
             <h3 className="font-semibold mb-2">Create New List</h3>
             <input

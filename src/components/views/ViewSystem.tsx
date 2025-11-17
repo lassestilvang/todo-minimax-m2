@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef, useCallback, useState } from 'react';
 import { TaskList } from '../tasks';
 import { AppTask } from '@/types/tasks';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useViewTransition } from '@/hooks/use-view-transition';
 import { 
   Calendar, 
   Clock, 
@@ -26,6 +27,16 @@ interface ViewSystemProps {
 
 export function ViewSystem({ view, onCreateTask, onEditTask, className }: ViewSystemProps) {
   const { tasks, updateTask, deleteTask, duplicateTask } = useTasks();
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const viewRef = useRef<HTMLDivElement>(null);
+  
+  const { 
+    supportsViewTransition, 
+    withViewTransition, 
+    getTransitionNames, 
+    applyTransitionStyles,
+    cleanupTransitionStyles 
+  } = useViewTransition();
 
   // Filter tasks based on view type
   const { filteredTasks, viewTitle, viewSubtitle, statistics } = useMemo(() => {
@@ -132,7 +143,15 @@ export function ViewSystem({ view, onCreateTask, onEditTask, className }: ViewSy
       const task = filteredTasks.find(t => t.id === taskId);
       if (task) {
         const newStatus = task.status === 'completed' ? 'todo' : 'completed';
-        await updateTask({ id: taskId, status: newStatus });
+        const performUpdate = async () => {
+          await updateTask({ id: taskId, status: newStatus });
+        };
+
+        if (supportsViewTransition) {
+          await withViewTransition(performUpdate);
+        } else {
+          await performUpdate();
+        }
       }
     } catch (error) {
       console.error('Failed to complete task:', error);
@@ -153,10 +172,36 @@ export function ViewSystem({ view, onCreateTask, onEditTask, className }: ViewSy
     return Math.round((statistics.completed / statistics.total) * 100);
   };
 
+  const handleCreateTaskWithTransition = useCallback(() => {
+    if (isTransitioning || !onCreateTask) return;
+    
+    setIsTransitioning(true);
+    
+    const performCreate = () => {
+      onCreateTask();
+      
+      // Clean up transition after delay
+      setTimeout(() => {
+        setIsTransitioning(false);
+      }, 200);
+    };
+    
+    if (supportsViewTransition) {
+      withViewTransition(performCreate);
+    } else {
+      performCreate();
+    }
+  }, [onCreateTask, isTransitioning, supportsViewTransition, withViewTransition]);
+
   return (
-    <div className={className}>
+    <div 
+      className={`content-${view} view-${view}-transition ${
+        isTransitioning ? 'opacity-90' : 'opacity-100'
+      } ${className}`}
+      ref={viewRef}
+    >
       {/* View Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 view-header">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/10 rounded-lg">
             {getViewIcon()}
@@ -168,7 +213,7 @@ export function ViewSystem({ view, onCreateTask, onEditTask, className }: ViewSy
         </div>
 
         <div className="flex items-center gap-3">
-          <Button onClick={onCreateTask} className="gap-2">
+          <Button onClick={handleCreateTaskWithTransition} className="gap-2 view-modal-transition">
             <Plus className="h-4 w-4" />
             Add Task
           </Button>
@@ -177,7 +222,7 @@ export function ViewSystem({ view, onCreateTask, onEditTask, className }: ViewSy
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card>
+        <Card className="view-content">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -189,7 +234,7 @@ export function ViewSystem({ view, onCreateTask, onEditTask, className }: ViewSy
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="view-content">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -208,7 +253,7 @@ export function ViewSystem({ view, onCreateTask, onEditTask, className }: ViewSy
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="view-content">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -220,7 +265,7 @@ export function ViewSystem({ view, onCreateTask, onEditTask, className }: ViewSy
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="view-content">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -234,29 +279,34 @@ export function ViewSystem({ view, onCreateTask, onEditTask, className }: ViewSy
       </div>
 
       {/* Task List */}
-      <TaskList
-        tasks={filteredTasks}
-        title=""
-        subtitle=""
-        onTaskComplete={handleTaskComplete}
-        onTaskEdit={onEditTask}
-        onTaskDelete={deleteTask}
-        onTaskDuplicate={duplicateTask}
-        emptyMessage={
-          view === 'today' 
-            ? "No tasks due today. Great job staying on top of things!"
-            : view === 'upcoming'
-            ? "No upcoming tasks. Schedule some future tasks to get started."
-            : view === 'next7'
-            ? "No tasks in the next 7 days. You're all caught up!"
-            : "No tasks found. Create your first task to get started!"
-        }
-      />
+      <div className="view-content">
+        <TaskList
+          tasks={filteredTasks}
+          title=""
+          subtitle=""
+          onTaskComplete={handleTaskComplete}
+          onTaskEdit={onEditTask}
+          onTaskDelete={deleteTask}
+          onTaskDuplicate={duplicateTask}
+          emptyMessage={
+            view === 'today' 
+              ? "No tasks due today. Great job staying on top of things!"
+              : view === 'upcoming'
+              ? "No upcoming tasks. Schedule some future tasks to get started."
+              : view === 'next7'
+              ? "No tasks in the next 7 days. You're all caught up!"
+              : "No tasks found. Create your first task to get started!"
+          }
+        />
+      </div>
 
       {/* Quick Actions */}
       {filteredTasks.length === 0 && (
         <div className="mt-8 text-center">
-          <Button onClick={onCreateTask} className="gap-2">
+          <Button 
+            onClick={handleCreateTaskWithTransition} 
+            className="gap-2 view-modal-transition"
+          >
             <Plus className="h-4 w-4" />
             Create Your First Task
           </Button>

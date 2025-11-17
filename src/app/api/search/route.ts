@@ -61,17 +61,17 @@ export async function POST(request: NextRequest) {
           if (filters.status && task.status !== filters.status) return false;
           if (filters.priority && task.priority !== filters.priority) return false;
           if (filters.listId && task.listId !== filters.listId) return false;
-          if (filters.completed !== undefined && task.status === 'completed' !== filters.completed) return false;
+          if (filters.completed !== undefined && task.status === 'done' !== filters.completed) return false;
           
           // Due date filters
-          if (filters.dueDateFrom && task.dueDate) {
-            const taskDate = new Date(task.dueDate);
+          if (filters.dueDateFrom && task.deadline) {
+            const taskDate = new Date(task.deadline);
             const fromDate = new Date(filters.dueDateFrom);
             if (taskDate < fromDate) return false;
           }
           
-          if (filters.dueDateTo && task.dueDate) {
-            const taskDate = new Date(task.dueDate);
+          if (filters.dueDateTo && task.deadline) {
+            const taskDate = new Date(task.deadline);
             const toDate = new Date(filters.dueDateTo);
             if (taskDate > toDate) return false;
           }
@@ -91,16 +91,16 @@ export async function POST(request: NextRequest) {
         if (!aExact && bExact) return 1;
         
         // Then sort by task priority and due date
-        const priorityOrder = { high: 3, medium: 2, low: 1, none: 0 };
+        const priorityOrder = { High: 3, Medium: 2, Low: 1, None: 0 };
         const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
         if (priorityDiff !== 0) return priorityDiff;
         
-        // Finally by due date
-        if (a.dueDate && b.dueDate) {
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        // Finally by deadline
+        if (a.deadline && b.deadline) {
+          return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
         }
-        if (a.dueDate && !b.dueDate) return -1;
-        if (!a.dueDate && b.dueDate) return 1;
+        if (a.deadline && !b.deadline) return -1;
+        if (!a.deadline && b.deadline) return 1;
         
         return 0;
       });

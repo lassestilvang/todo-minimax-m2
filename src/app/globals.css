@@ -56,4 +56,237 @@
   body {
     @apply bg-background text-foreground;
   }
+/* View Transition API CSS Styles */
+@layer utilities {
+  /* Base transition classes */
+  .view-fade-transition {
+    transition: opacity 0.3s ease-in-out;
+  }
+  
+  .view-slide-transition {
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  .view-slide-up-transition {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .view-slide-down-transition {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  /* View-specific transition classes */
+  .view-today-transition {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .view-next7-transition {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .view-upcoming-transition {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .view-all-transition {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  /* List and modal transitions */
+  .view-list-transition {
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .view-modal-transition {
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+/* View Transition API Animation Keyframes */
+@media (prefers-reduced-motion: reduce) {
+  /* Disable transitions for users who prefer reduced motion */
+  .view-fade-transition,
+  .view-slide-transition,
+  .view-slide-up-transition,
+  .view-slide-down-transition,
+  .view-today-transition,
+  .view-next7-transition,
+  .view-upcoming-transition,
+  .view-all-transition,
+  .view-list-transition,
+  .view-modal-transition {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* View Transition API pseudo-elements */
+::view-transition-old(view-out-*) {
+  animation: view-out 0.3s ease-in-out;
+}
+
+::view-transition-new(view-in-*) {
+  animation: view-in 0.3s ease-in-out;
+}
+
+/* Fallback CSS animations for browsers without View Transition API */
+@keyframes view-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes view-in {
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* View transition specific animations */
+@keyframes view-today-in {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes view-next7-in {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes view-upcoming-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes view-all-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Modal transition animations */
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modal-out {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+}
+
+/* List item transition animations */
+@keyframes list-item-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Search transition animations */
+@keyframes search-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes search-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+/* Apply view transition classes to main content areas */
+.view-content {
+  view-transition-name: main-content;
+}
+
+.view-header {
+  view-transition-name: main-header;
+}
+
+.view-sidebar {
+  view-transition-name: main-sidebar;
+}
+
+/* View-specific content classes */
+.content-today {
+  view-transition-name: content-today;
+}
+
+.content-next7 {
+  view-transition-name: content-next7;
+}
+
+.content-upcoming {
+  view-transition-name: content-upcoming;
+}
+
+.content-all {
+  view-transition-name: content-all;
+}
+
+/* List-specific content classes */
+.content-list {
+  view-transition-name: content-list;
+}
 }

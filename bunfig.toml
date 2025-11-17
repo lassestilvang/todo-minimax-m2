@@ -1,0 +1,60 @@
+# Bun Test Configuration
+# See https://bun.sh/guides/testing for more information
+
+[test]
+# Test environment setup
+preload = "./src/test/setup.ts"
+
+# Test timeout in milliseconds
+timeout = 10000
+
+# Coverage configuration
+coverage = true
+coverage_dir = "./coverage"
+
+# Test reporter options
+reporter = "pretty"
+
+# Test file pattern
+file_pattern = "**/*.test.{ts,tsx,js,jsx}"
+
+# Ignore test files matching this pattern
+exclude = [
+  "node_modules",
+  ".next",
+  ".git",
+  "coverage",
+  "dist"
+]
+
+# Environment variables for tests
+[test.env]
+NODE_ENV = "test"
+BUN_ENV = "test"
+
+# Coverage options
+[coverage]
+include = [
+  "src/**/*.{ts,tsx}",
+  "src/**/*.js"
+]
+exclude = [
+  "src/**/*.test.{ts,tsx}",
+  "src/**/*.spec.{ts,tsx}",
+  "src/test/**/*"
+]
+
+# Test database configuration for Bun
+[test.database]
+path = "./test-data/test.db"
+reset_on_start = true
+
+# Mock API configuration
+[test.mock_api]
+base_url = "http://localhost:3000"
+timeout = 5000
+
+# Test performance options
+[test.performance]
+enable_profiling = true
+slow_test_threshold = 1000
