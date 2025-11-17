@@ -521,16 +521,23 @@ export class QueryBuilder {
   private query: {
     select: string[];
     from: string;
-    where: Record<string, any> = {};
-    whereIn: Record<string, any[]> = {};
-    orderBy: Array<{ column: string; direction: 'ASC' | 'DESC' }> = [];
+    where: Record<string, any>;
+    whereIn: Record<string, any[]>;
+    orderBy: Array<{ column: string; direction: 'ASC' | 'DESC' }>;
     limit?: number;
     offset?: number;
-    joins: Array<{ table: string; condition: string }> = [];
+    joins: Array<{ table: string; condition: string }>;
   };
 
   constructor() {
-    this.reset();
+    this.query = {
+      select: [],
+      from: '',
+      where: {},
+      whereIn: {},
+      orderBy: [],
+      joins: []
+    };
   }
 
   public select(columns: string[]): QueryBuilder {
@@ -635,10 +642,10 @@ export class QueryBuilder {
     this.query = {
       select: [],
       from: '',
-      orderBy: [],
       where: {},
       whereIn: {},
-      joins: [],
+      orderBy: [],
+      joins: []
     };
   }
 }

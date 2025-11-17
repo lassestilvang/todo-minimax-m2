@@ -12,9 +12,6 @@ timeout = 10000
 coverage = true
 coverage_dir = "./coverage"
 
-# Test reporter options
-reporter = "pretty"
-
 # Test file pattern
 file_pattern = "**/*.test.{ts,tsx,js,jsx}"
 

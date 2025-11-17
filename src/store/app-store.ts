@@ -64,17 +64,22 @@ export const createAppStore = (config?: {
 
     // =================== USER MANAGEMENT ===================
     setUser: (user) => {
-      set((state) => {
-        state.user = user;
-        state.isAuthenticated = !!user;
-      });
+      set((state) => ({
+        ...state,
+        user,
+        isAuthenticated: !!user
+      }));
     },
 
     login: async (credentials) => {
-      set((state) => {
-        state.loading.user = true;
-        state.error = null;
-      });
+      set((state) => ({
+        ...state,
+        loading: {
+          ...state.loading,
+          user: true
+        },
+        error: null
+      }));
 
       try {
         // TODO: Implement actual authentication
@@ -84,35 +89,51 @@ export const createAppStore = (config?: {
           email: credentials.email
         };
 
-        set((state) => {
-          state.user = user;
-          state.isAuthenticated = true;
-          state.loading.user = false;
-        });
+        set((state) => ({
+          ...state,
+          user,
+          isAuthenticated: true,
+          loading: {
+            ...state.loading,
+            user: false
+          }
+        }));
 
         return user;
       } catch (error) {
-        set((state) => {
-          state.error = error as any;
-          state.loading.user = false;
-        });
+        set((state) => ({
+          ...state,
+          error: error as any,
+          loading: {
+            ...state.loading,
+            user: false
+          }
+        }));
         throw error;
       }
     },
 
     logout: async () => {
-      set((state) => {
-        state.user = null;
-        state.isAuthenticated = false;
-        state.loading.user = false;
-        state.error = null;
-      });
+      set((state) => ({
+        ...state,
+        user: null,
+        isAuthenticated: false,
+        loading: {
+          ...state.loading,
+          user: false
+        },
+        error: null
+      }));
     },
     loadUser: async () => {
-      set((state) => {
-        state.loading.user = true;
-        state.error = null;
-      });
+      set((state) => ({
+        ...state,
+        loading: {
+          ...state.loading,
+          user: true
+        },
+        error: null
+      }));
 
       try {
         // TODO: Implement actual user loading from API
@@ -125,28 +146,40 @@ export const createAppStore = (config?: {
           email: 'demo@example.com'
         };
 
-        set((state) => {
-          state.user = user;
-          state.isAuthenticated = true;
-          state.loading.user = false;
-        });
+        set((state) => ({
+          ...state,
+          user,
+          isAuthenticated: true,
+          loading: {
+            ...state.loading,
+            user: false
+          }
+        }));
 
         return user;
       } catch (error) {
-        set((state) => {
-          state.error = error as any;
-          state.loading.user = false;
-        });
+        set((state) => ({
+          ...state,
+          error: error as any,
+          loading: {
+            ...state.loading,
+            user: false
+          }
+        }));
         throw error;
       }
     },
 
     // =================== THEME MANAGEMENT ===================
     setTheme: (theme: Theme) => {
-      set((state) => {
-        state.theme = theme;
-        state.preferences.theme = theme;
-      });
+      set((state) => ({
+        ...state,
+        theme,
+        preferences: {
+          ...state.preferences,
+          theme
+        }
+      }));
     },
 
     toggleTheme: () => {
@@ -158,43 +191,49 @@ export const createAppStore = (config?: {
 
     // =================== LAYOUT MANAGEMENT ===================
     setSidebarCollapsed: (collapsed) => {
-      set((state) => {
-        state.sidebarCollapsed = collapsed;
-      });
+      set((state) => ({
+        ...state,
+        sidebarCollapsed: collapsed
+      }));
     },
 
     toggleSidebar: () => {
-      set((state) => {
-        state.sidebarCollapsed = !state.sidebarCollapsed;
-      });
+      set((state) => ({
+        ...state,
+        sidebarCollapsed: !state.sidebarCollapsed
+      }));
     },
 
     setCurrentView: (view) => {
-      set((state) => {
-        state.currentView = view;
-      });
+      set((state) => ({
+        ...state,
+        currentView: view
+      }));
     },
 
     // =================== SEARCH MANAGEMENT ===================
     setSearchOpen: (open) => {
-      set((state) => {
-        state.searchOpen = open;
-      });
+      set((state) => ({
+        ...state,
+        searchOpen: open
+      }));
     },
 
     toggleSearch: () => {
-      set((state) => {
-        state.searchOpen = !state.searchOpen;
-      });
+      set((state) => ({
+        ...state,
+        searchOpen: !state.searchOpen
+      }));
     },
 
     // =================== MODAL MANAGEMENT ===================
     setModalOpen: (open, type = null, data = null) => {
-      set((state) => {
-        state.modalOpen = open;
-        state.modalType = open ? type : null;
-        state.modalData = open ? data : null;
-      });
+      set((state) => ({
+        ...state,
+        modalOpen: open,
+        modalType: open ? type : null,
+        modalData: open ? data : null
+      }));
     },
 
     showModal: (type, data = null) => {
@@ -241,46 +280,53 @@ export const createAppStore = (config?: {
     },
 
     hideNotification: (id) => {
-      set((state) => {
-        state.notifications = state.notifications.filter(n => n.id !== id);
-      });
+      set((state) => ({
+        ...state,
+        notifications: state.notifications.filter(n => n.id !== id)
+      }));
     },
 
     clearNotifications: () => {
-      set((state) => {
-        state.notifications = [];
-      });
+      set((state) => ({
+        ...state,
+        notifications: []
+      }));
     },
 
     // =================== PREFERENCES ===================
     updatePreferences: (preferences) => {
-      set((state) => {
-        state.preferences = {
+      set((state) => ({
+        ...state,
+        preferences: {
           ...state.preferences,
           ...preferences
-        };
-      });
+        }
+      }));
     },
 
     // =================== LOADING AND ERROR ===================
     setLoading: (key, loading) => {
-      set((state) => {
-        if (key in state.loading) {
-          (state.loading as any)[key] = loading;
+      set((state) => ({
+        ...state,
+        loading: {
+          ...state.loading,
+          ...(key in state.loading ? { [key]: loading } : {})
         }
-      });
+      }));
     },
 
     setError: (error) => {
-      set((state) => {
-        state.error = error;
-      });
+      set((state) => ({
+        ...state,
+        error
+      }));
     },
 
     clearError: () => {
-      set((state) => {
-        state.error = null;
-      });
+      set((state) => ({
+        ...state,
+        error: null
+      }));
     },
 
     // =================== SELECTORS ===================

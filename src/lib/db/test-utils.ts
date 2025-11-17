@@ -728,14 +728,3 @@ export class DatabaseTestHelpers {
     };
   }
 }
-
-// Export utility functions and classes
-export const {
-  TestDatabaseManager,
-  TestDataFixtures,
-  DatabaseTestHelpers,
-} = {
-  TestDatabaseManager,
-  TestDataFixtures,
-  DatabaseTestHelpers,
-};

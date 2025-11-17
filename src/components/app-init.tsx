@@ -4,13 +4,13 @@ import { useEffect } from 'react'
 import { useApp } from '@/store/hooks'
 
 export function AppInit() {
-  const { loadUser } = useApp()
+  const appStore = useApp()
 
   useEffect(() => {
-    loadUser()
+    appStore.loadUser()
       .then(() => console.log('App initialized'))
       .catch(error => console.error('Failed to initialize app:', error))
-  }, [loadUser])
+  }, [])
 
   return null
 }
