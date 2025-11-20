@@ -62,6 +62,10 @@ export interface AppList extends Omit<List, 'id' | 'userId'> {
   currentView?: ListViewState;
   lastViewed?: Date;
   pinnedPosition?: number;
+  sortIndex: number;
+  isFavorite: boolean;
+  isShared: boolean;
+  description?: string;
 }
 
 /**

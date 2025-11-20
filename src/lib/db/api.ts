@@ -1,23 +1,19 @@
 // Database API Layer for Daily Task Planner
 // Type-safe query builders and database operations
 
-import { 
-  ValidationError,
-  NotFoundError,
-  DatabaseError 
-} from './types';
-import { DatabaseManager } from './index';
-import { 
+import { ValidationError, NotFoundError, DatabaseError } from "./types";
+import { DatabaseManager } from "./index";
+import {
   QueryBuilder,
   DataValidator,
   HealthChecker,
-  MigrationManager
-} from './utils';
-import { 
+  MigrationManager,
+} from "./utils";
+import {
   TestDatabaseManager,
   TestDataFixtures,
-  DatabaseTestHelpers 
-} from './test-utils';
+  DatabaseTestHelpers,
+} from "./test-utils";
 import type {
   User,
   List,
@@ -31,8 +27,8 @@ import type {
   ListWithTaskCount,
   LabelWithTaskCount,
   Priority,
-  TaskStatus
-} from './types';
+  TaskStatus,
+} from "./types";
 
 export class DatabaseAPI {
   private db: DatabaseManager;
@@ -50,10 +46,14 @@ export class DatabaseAPI {
   /**
    * Create a new task
    */
-  public async createTask(taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Promise<Task> {
+  public async createTask(
+    taskData: Omit<Task, "id" | "createdAt" | "updatedAt">
+  ): Promise<Task> {
     const validation = DataValidator.validateTask(taskData);
     if (!validation.isValid) {
-      throw new ValidationError(`Task validation failed: ${validation.errors.join(', ')}`);
+      throw new ValidationError(
+        `Task validation failed: ${validation.errors.join(", ")}`
+      );
     }
 
     const task: Task = {
@@ -71,20 +71,37 @@ export class DatabaseAPI {
         is_recurring, recurring_pattern, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        task.id, task.name, task.description, task.date, task.deadline,
-        task.estimate, task.actualTime, task.priority, task.status,
-        task.userId, task.listId, task.parentTaskId, task.position,
+        task.id,
+        task.name,
+        task.description,
+        task.date,
+        task.deadline,
+        task.estimate,
+        task.actualTime,
+        task.priority,
+        task.status,
+        task.userId,
+        task.listId,
+        task.parentTaskId,
+        task.position,
         task.isRecurring ? 1 : 0,
         task.recurringPattern ? JSON.stringify(task.recurringPattern) : null,
-        task.createdAt, task.updatedAt
+        task.createdAt,
+        task.updatedAt,
       ]
     );
 
     // Log task creation
-    await this.logTaskHistory(task.id, 'created', task.userId, {
-      field: 'all',
-      newValue: task.name,
-    }, `Task created: ${task.name}`);
+    await this.logTaskHistory(
+      task.id,
+      "created",
+      task.userId,
+      {
+        field: "all",
+        newValue: task.name,
+      },
+      `Task created: ${task.name}`
+    );
 
     return task;
   }
@@ -92,11 +109,12 @@ export class DatabaseAPI {
   /**
    * Get task by ID with all related data
    */
-  public async getTaskWithDetails(taskId: string): Promise<TaskWithDetails | null> {
-    const task = this.db.get<Task>(
-      'SELECT * FROM tasks WHERE id = ?',
-      [taskId]
-    );
+  public async getTaskWithDetails(
+    taskId: string
+  ): Promise<TaskWithDetails | null> {
+    const task = this.db.get<Task>("SELECT * FROM tasks WHERE id = ?", [
+      taskId,
+    ]);
 
     if (!task) {
       return null;
@@ -119,7 +137,7 @@ export class DatabaseAPI {
       reminders,
       attachments,
       subtaskCount: subtasks.length,
-      completedSubtaskCount: subtasks.filter(st => st.isCompleted).length,
+      completedSubtaskCount: subtasks.filter((st) => st.isCompleted).length,
     };
   }
 
@@ -140,42 +158,45 @@ export class DatabaseAPI {
   ): Promise<TaskWithDetails[]> {
     const queryBuilder = new QueryBuilder()
       .select([
-        't.*',
-        'l.name as list_name',
-        'l.color as list_color',
-        'l.emoji as list_emoji'
+        "t.*",
+        "l.name as list_name",
+        "l.color as list_color",
+        "l.emoji as list_emoji",
       ])
-      .from('tasks t')
-      .join('lists l', 't.list_id = l.id')
-      .where({ 't.user_id': userId });
+      .from("tasks t")
+      .join("lists l", "t.list_id = l.id")
+      .where({ "t.user_id": userId });
 
     // Apply filters
     if (filters.listId) {
-      queryBuilder.where({ 't.list_id': filters.listId });
+      queryBuilder.where({ "t.list_id": filters.listId });
     }
 
     if (filters.status) {
-      queryBuilder.where({ 't.status': filters.status });
+      queryBuilder.where({ "t.status": filters.status });
     }
 
     if (filters.priority) {
-      queryBuilder.where({ 't.priority': filters.priority });
+      queryBuilder.where({ "t.priority": filters.priority });
     }
 
     if (filters.dateFrom) {
-      queryBuilder.where({ 't.date >=': filters.dateFrom });
+      queryBuilder.where({ "t.date >=": filters.dateFrom });
     }
 
     if (filters.dateTo) {
-      queryBuilder.where({ 't.date <=': filters.dateTo });
+      queryBuilder.where({ "t.date <=": filters.dateTo });
     }
 
     if (filters.search) {
-      queryBuilder.where({ 't.name LIKE': `%${filters.search}%` });
+      queryBuilder.where({ "t.name LIKE": `%${filters.search}%` });
     }
 
     // Order by position and creation date
-    queryBuilder.orderBy('t.list_id').orderBy('t.position').orderBy('t.created_at', 'DESC');
+    queryBuilder
+      .orderBy("t.list_id")
+      .orderBy("t.position")
+      .orderBy("t.created_at", "DESC");
 
     const { sql, params } = queryBuilder.build();
     const tasks = this.db.query<any>(sql, params);
@@ -207,15 +228,17 @@ export class DatabaseAPI {
           reminders,
           attachments,
           subtaskCount: subtasks.length,
-          completedSubtaskCount: subtasks.filter(st => st.isCompleted).length,
+          completedSubtaskCount: subtasks.filter((st) => st.isCompleted).length,
         } as TaskWithDetails;
       })
     );
 
     // Filter by labels if specified
     if (filters.labelIds && filters.labelIds.length > 0) {
-      return tasksWithDetails.filter(task =>
-        task.labels?.some((label: Label) => filters.labelIds!.includes(label.id))
+      return tasksWithDetails.filter((task) =>
+        task.labels?.some((label: Label) =>
+          filters.labelIds!.includes(label.id)
+        )
       );
     }
 
@@ -227,11 +250,13 @@ export class DatabaseAPI {
    */
   public async updateTask(
     taskId: string,
-    updates: Partial<Omit<Task, 'id' | 'userId' | 'createdAt'>>,
+    updates: Partial<Omit<Task, "id" | "userId" | "createdAt">>,
     changedBy: string
   ): Promise<Task> {
     // Get current task for change tracking
-    const currentTask = this.db.get<Task>('SELECT * FROM tasks WHERE id = ?', [taskId]);
+    const currentTask = this.db.get<Task>("SELECT * FROM tasks WHERE id = ?", [
+      taskId,
+    ]);
     if (!currentTask) {
       throw new NotFoundError(`Task with ID ${taskId} not found`);
     }
@@ -241,7 +266,9 @@ export class DatabaseAPI {
       const updatedTask = { ...currentTask, ...updates };
       const validation = DataValidator.validateTask(updatedTask);
       if (!validation.isValid) {
-        throw new ValidationError(`Task validation failed: ${validation.errors.join(', ')}`);
+        throw new ValidationError(
+          `Task validation failed: ${validation.errors.join(", ")}`
+        );
       }
     }
 
@@ -250,11 +277,11 @@ export class DatabaseAPI {
       .filter(([_, value]) => value !== undefined)
       .map(([key, value]) => {
         const dbKey = this.camelToSnakeCase(key);
-        
-        if (key === 'recurringPattern' && value) {
+
+        if (key === "recurringPattern" && value) {
           return `${dbKey} = ?`;
         }
-        
+
         return `${dbKey} = ?`;
       });
 
@@ -265,22 +292,22 @@ export class DatabaseAPI {
     const updateValues = Object.entries(updates)
       .filter(([_, value]) => value !== undefined)
       .map(([key, value]) => {
-        if (key === 'recurringPattern' && value) {
+        if (key === "recurringPattern" && value) {
           return JSON.stringify(value);
         }
-        if (typeof value === 'boolean') {
+        if (typeof value === "boolean") {
           return value ? 1 : 0;
         }
         return value;
       });
 
     // Add updated_at timestamp
-    updateFields.push('updated_at = ?');
+    updateFields.push("updated_at = ?");
     updateValues.push(new Date());
 
     const sql = `
-      UPDATE tasks 
-      SET ${updateFields.join(', ')}
+      UPDATE tasks
+      SET ${updateFields.join(", ")}
       WHERE id = ?
     `;
     updateValues.push(taskId);
@@ -289,31 +316,39 @@ export class DatabaseAPI {
 
     // Log changes
     for (const [key, newValue] of Object.entries(updates)) {
-      if (key !== 'updatedAt' && key !== 'createdAt') {
+      if (key !== "updatedAt" && key !== "createdAt") {
         const oldValue = (currentTask as any)[key];
-        await this.logTaskHistory(taskId, 'updated', changedBy, {
-          field: key,
-          oldValue,
-          newValue,
-        }, `Updated ${key}`);
+        await this.logTaskHistory(
+          taskId,
+          "updated",
+          changedBy,
+          {
+            field: key,
+            oldValue,
+            newValue,
+          },
+          `Updated ${key}`
+        );
       }
     }
 
     // Return updated task
-    return this.db.get<Task>('SELECT * FROM tasks WHERE id = ?', [taskId])!;
+    return this.db.get<Task>("SELECT * FROM tasks WHERE id = ?", [taskId])!;
   }
 
   /**
    * Delete task
    */
   public async deleteTask(taskId: string, changedBy: string): Promise<void> {
-    const task = this.db.get<Task>('SELECT * FROM tasks WHERE id = ?', [taskId]);
+    const task = this.db.get<Task>("SELECT * FROM tasks WHERE id = ?", [
+      taskId,
+    ]);
     if (!task) {
       throw new NotFoundError(`Task with ID ${taskId} not found`);
     }
 
     // The deletion will be logged by the database trigger
-    this.db.run('DELETE FROM tasks WHERE id = ?', [taskId]);
+    this.db.run("DELETE FROM tasks WHERE id = ?", [taskId]);
   }
 
   // =================== LIST OPERATIONS ===================
@@ -321,10 +356,14 @@ export class DatabaseAPI {
   /**
    * Create a new list
    */
-  public async createList(listData: Omit<List, 'id' | 'createdAt' | 'updatedAt'>): Promise<List> {
+  public async createList(
+    listData: Omit<List, "id" | "createdAt" | "updatedAt">
+  ): Promise<List> {
     const validation = DataValidator.validateList(listData);
     if (!validation.isValid) {
-      throw new ValidationError(`List validation failed: ${validation.errors.join(', ')}`);
+      throw new ValidationError(
+        `List validation failed: ${validation.errors.join(", ")}`
+      );
     }
 
     const list: List = {
@@ -335,10 +374,16 @@ export class DatabaseAPI {
     };
 
     this.db.run(
-      'INSERT INTO lists (id, name, color, emoji, is_default, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      "INSERT INTO lists (id, name, color, emoji, is_default, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       [
-        list.id, list.name, list.color, list.emoji,
-        list.isDefault ? 1 : 0, list.userId, list.createdAt, list.updatedAt
+        list.id,
+        list.name,
+        list.color,
+        list.emoji,
+        list.isDefault ? 1 : 0,
+        list.userId,
+        list.createdAt,
+        list.updatedAt,
       ]
     );
 
@@ -346,11 +391,23 @@ export class DatabaseAPI {
   }
 
   /**
+   * Get all lists for a user
+   */
+  public async getUserLists(userId: string): Promise<List[]> {
+    return this.db.query<List>(
+      `SELECT * FROM lists WHERE user_id = ? ORDER BY is_default DESC, name ASC`,
+      [userId]
+    );
+  }
+
+  /**
    * Get lists for user with task counts
    */
-  public async getUserListsWithCounts(userId: string): Promise<ListWithTaskCount[]> {
+  public async getUserListsWithCounts(
+    userId: string
+  ): Promise<ListWithTaskCount[]> {
     return this.db.query<ListWithTaskCount>(
-      `SELECT 
+      `SELECT
         l.*,
         COUNT(t.id) as taskCount,
         SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) as completedTaskCount
@@ -367,7 +424,9 @@ export class DatabaseAPI {
    * Get list by ID
    */
   public async getList(listId: string): Promise<List | null> {
-    return this.db.get<List>('SELECT * FROM lists WHERE id = ?', [listId]) as List | null;
+    return this.db.get<List>("SELECT * FROM lists WHERE id = ?", [
+      listId,
+    ]) as List | null;
   }
 
   // =================== LABEL OPERATIONS ===================
@@ -375,10 +434,14 @@ export class DatabaseAPI {
   /**
    * Create a new label
    */
-  public async createLabel(labelData: Omit<Label, 'id' | 'createdAt' | 'updatedAt'>): Promise<Label> {
+  public async createLabel(
+    labelData: Omit<Label, "id" | "createdAt" | "updatedAt">
+  ): Promise<Label> {
     const validation = DataValidator.validateLabel(labelData);
     if (!validation.isValid) {
-      throw new ValidationError(`Label validation failed: ${validation.errors.join(', ')}`);
+      throw new ValidationError(
+        `Label validation failed: ${validation.errors.join(", ")}`
+      );
     }
 
     const label: Label = {
@@ -389,8 +452,16 @@ export class DatabaseAPI {
     };
 
     this.db.run(
-      'INSERT INTO labels (id, name, icon, color, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [label.id, label.name, label.icon, label.color, label.userId, label.createdAt, label.updatedAt]
+      "INSERT INTO labels (id, name, icon, color, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [
+        label.id,
+        label.name,
+        label.icon,
+        label.color,
+        label.userId,
+        label.createdAt,
+        label.updatedAt,
+      ]
     );
 
     return label;
@@ -399,9 +470,11 @@ export class DatabaseAPI {
   /**
    * Get labels for user with task counts
    */
-  public async getUserLabelsWithCounts(userId: string): Promise<LabelWithTaskCount[]> {
+  public async getUserLabelsWithCounts(
+    userId: string
+  ): Promise<LabelWithTaskCount[]> {
     return this.db.query<LabelWithTaskCount>(
-      `SELECT 
+      `SELECT
         l.*,
         COUNT(DISTINCT tl.task_id) as taskCount
       FROM labels l
@@ -420,7 +493,7 @@ export class DatabaseAPI {
    */
   public async addLabelToTask(taskId: string, labelId: string): Promise<void> {
     this.db.run(
-      'INSERT OR IGNORE INTO task_labels (task_id, label_id, created_at) VALUES (?, ?, ?)',
+      "INSERT OR IGNORE INTO task_labels (task_id, label_id, created_at) VALUES (?, ?, ?)",
       [taskId, labelId, new Date()]
     );
   }
@@ -428,8 +501,14 @@ export class DatabaseAPI {
   /**
    * Remove label from task
    */
-  public async removeLabelFromTask(taskId: string, labelId: string): Promise<void> {
-    this.db.run('DELETE FROM task_labels WHERE task_id = ? AND label_id = ?', [taskId, labelId]);
+  public async removeLabelFromTask(
+    taskId: string,
+    labelId: string
+  ): Promise<void> {
+    this.db.run("DELETE FROM task_labels WHERE task_id = ? AND label_id = ?", [
+      taskId,
+      labelId,
+    ]);
   }
 
   /**
@@ -450,7 +529,9 @@ export class DatabaseAPI {
   /**
    * Create subtask
    */
-  public async createSubtask(subtaskData: Omit<Subtask, 'id' | 'createdAt' | 'updatedAt'>): Promise<Subtask> {
+  public async createSubtask(
+    subtaskData: Omit<Subtask, "id" | "createdAt" | "updatedAt">
+  ): Promise<Subtask> {
     const subtask: Subtask = {
       ...subtaskData,
       id: crypto.randomUUID(),
@@ -459,10 +540,15 @@ export class DatabaseAPI {
     };
 
     this.db.run(
-      'INSERT INTO subtasks (id, name, is_completed, task_id, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      "INSERT INTO subtasks (id, name, is_completed, task_id, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [
-        subtask.id, subtask.name, subtask.isCompleted ? 1 : 0,
-        subtask.taskId, subtask.position, subtask.createdAt, subtask.updatedAt
+        subtask.id,
+        subtask.name,
+        subtask.isCompleted ? 1 : 0,
+        subtask.taskId,
+        subtask.position,
+        subtask.createdAt,
+        subtask.updatedAt,
       ]
     );
 
@@ -474,7 +560,7 @@ export class DatabaseAPI {
    */
   public async getSubtasks(taskId: string): Promise<Subtask[]> {
     return this.db.query<Subtask>(
-      'SELECT * FROM subtasks WHERE task_id = ? ORDER BY position ASC',
+      "SELECT * FROM subtasks WHERE task_id = ? ORDER BY position ASC",
       [taskId]
     );
   }
@@ -482,8 +568,14 @@ export class DatabaseAPI {
   /**
    * Update subtask
    */
-  public async updateSubtask(subtaskId: string, updates: Partial<Subtask>): Promise<Subtask> {
-    const currentSubtask = this.db.get<Subtask>('SELECT * FROM subtasks WHERE id = ?', [subtaskId]);
+  public async updateSubtask(
+    subtaskId: string,
+    updates: Partial<Subtask>
+  ): Promise<Subtask> {
+    const currentSubtask = this.db.get<Subtask>(
+      "SELECT * FROM subtasks WHERE id = ?",
+      [subtaskId]
+    );
     if (!currentSubtask) {
       throw new NotFoundError(`Subtask with ID ${subtaskId} not found`);
     }
@@ -499,25 +591,27 @@ export class DatabaseAPI {
     const updateValues = Object.entries(updates)
       .filter(([_, value]) => value !== undefined)
       .map(([key, value]) => {
-        if (key === 'isCompleted') {
+        if (key === "isCompleted") {
           return value ? 1 : 0;
         }
         return value;
       });
 
-    updateFields.push('updated_at = ?');
+    updateFields.push("updated_at = ?");
     updateValues.push(new Date());
 
     const sql = `
-      UPDATE subtasks 
-      SET ${updateFields.join(', ')}
+      UPDATE subtasks
+      SET ${updateFields.join(", ")}
       WHERE id = ?
     `;
     updateValues.push(subtaskId);
 
     this.db.run(sql, updateValues);
 
-    return this.db.get<Subtask>('SELECT * FROM subtasks WHERE id = ?', [subtaskId])!;
+    return this.db.get<Subtask>("SELECT * FROM subtasks WHERE id = ?", [
+      subtaskId,
+    ])!;
   }
 
   // =================== REMINDER OPERATIONS ===================
@@ -525,7 +619,9 @@ export class DatabaseAPI {
   /**
    * Create reminder
    */
-  public async createReminder(reminderData: Omit<Reminder, 'id' | 'createdAt' | 'updatedAt'>): Promise<Reminder> {
+  public async createReminder(
+    reminderData: Omit<Reminder, "id" | "createdAt" | "updatedAt">
+  ): Promise<Reminder> {
     const reminder: Reminder = {
       ...reminderData,
       id: crypto.randomUUID(),
@@ -534,10 +630,15 @@ export class DatabaseAPI {
     };
 
     this.db.run(
-      'INSERT INTO reminders (id, task_id, remind_at, is_sent, method, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      "INSERT INTO reminders (id, task_id, remind_at, is_sent, method, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [
-        reminder.id, reminder.taskId, reminder.remindAt,
-        reminder.isSent ? 1 : 0, reminder.method, reminder.createdAt, reminder.updatedAt
+        reminder.id,
+        reminder.taskId,
+        reminder.remindAt,
+        reminder.isSent ? 1 : 0,
+        reminder.method,
+        reminder.createdAt,
+        reminder.updatedAt,
       ]
     );
 
@@ -549,7 +650,7 @@ export class DatabaseAPI {
    */
   public async getReminders(taskId: string): Promise<Reminder[]> {
     return this.db.query<Reminder>(
-      'SELECT * FROM reminders WHERE task_id = ? ORDER BY remind_at ASC',
+      "SELECT * FROM reminders WHERE task_id = ? ORDER BY remind_at ASC",
       [taskId]
     );
   }
@@ -573,7 +674,7 @@ export class DatabaseAPI {
    */
   public async markReminderSent(reminderId: string): Promise<void> {
     this.db.run(
-      'UPDATE reminders SET is_sent = 1, updated_at = ? WHERE id = ?',
+      "UPDATE reminders SET is_sent = 1, updated_at = ? WHERE id = ?",
       [new Date(), reminderId]
     );
   }
@@ -583,17 +684,31 @@ export class DatabaseAPI {
   /**
    * Create attachment
    */
-  public async createAttachment(attachmentData: Omit<Attachment, 'uploadedAt'>): Promise<Attachment> {
+  public async createAttachment(
+    attachmentData: Omit<
+      Attachment,
+      "id" | "createdAt" | "updatedAt" | "uploadedAt"
+    >
+  ): Promise<Attachment> {
     const attachment: Attachment = {
       ...attachmentData,
+      id: crypto.randomUUID(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
       uploadedAt: new Date(),
     };
 
     this.db.run(
-      'INSERT INTO attachments (id, task_id, filename, original_name, mime_type, size, path, uploaded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      "INSERT INTO attachments (id, task_id, filename, original_name, mime_type, size, path, uploaded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       [
-        attachment.id, attachment.taskId, attachment.filename, attachment.originalName,
-        attachment.mimeType, attachment.size, attachment.path, attachment.uploadedAt
+        attachment.id,
+        attachment.taskId,
+        attachment.filename,
+        attachment.originalName,
+        attachment.mimeType,
+        attachment.size,
+        attachment.path,
+        attachment.uploadedAt,
       ]
     );
 
@@ -605,7 +720,7 @@ export class DatabaseAPI {
    */
   public async getAttachments(taskId: string): Promise<Attachment[]> {
     return this.db.query<Attachment>(
-      'SELECT * FROM attachments WHERE task_id = ? ORDER BY uploaded_at DESC',
+      "SELECT * FROM attachments WHERE task_id = ? ORDER BY uploaded_at DESC",
       [taskId]
     );
   }
@@ -614,7 +729,7 @@ export class DatabaseAPI {
    * Delete attachment
    */
   public async deleteAttachment(attachmentId: string): Promise<void> {
-    this.db.run('DELETE FROM attachments WHERE id = ?', [attachmentId]);
+    this.db.run("DELETE FROM attachments WHERE id = ?", [attachmentId]);
   }
 
   // =================== TASK HISTORY OPERATIONS ===================
@@ -624,18 +739,23 @@ export class DatabaseAPI {
    */
   public async logTaskHistory(
     taskId: string,
-    action: TaskHistory['action'],
+    action: TaskHistory["action"],
     changedBy: string,
     changes: Record<string, any>,
     description?: string
   ): Promise<void> {
     const historyId = `history_${taskId}_${Date.now()}`;
-    
+
     this.db.run(
-      'INSERT INTO task_history (id, task_id, action, changed_by, changes, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      "INSERT INTO task_history (id, task_id, action, changed_by, changes, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [
-        historyId, taskId, action, changedBy, JSON.stringify(changes),
-        description, new Date()
+        historyId,
+        taskId,
+        action,
+        changedBy,
+        JSON.stringify(changes),
+        description,
+        new Date(),
       ]
     );
   }
@@ -643,11 +763,14 @@ export class DatabaseAPI {
   /**
    * Get task history
    */
-  public async getTaskHistory(taskId: string, limit: number = 50): Promise<TaskHistory[]> {
+  public async getTaskHistory(
+    taskId: string,
+    limit: number = 50
+  ): Promise<TaskHistory[]> {
     return this.db.query<TaskHistory>(
-      `SELECT * FROM task_history 
-       WHERE task_id = ? 
-       ORDER BY created_at DESC 
+      `SELECT * FROM task_history
+       WHERE task_id = ?
+       ORDER BY created_at DESC
        LIMIT ?`,
       [taskId, limit]
     );
@@ -689,7 +812,7 @@ export class DatabaseAPI {
    * Convert camelCase to snake_case
    */
   private camelToSnakeCase(str: string): string {
-    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
   }
 
   /**
@@ -734,10 +857,10 @@ export function createDatabaseAPI(config?: any): DatabaseAPI {
 /**
  * Create test database API
  */
-export function createTestDatabaseAPI(config?: any): { 
-  api: DatabaseAPI; 
-  testManager: TestDatabaseManager; 
-  testHelpers: DatabaseTestHelpers; 
+export function createTestDatabaseAPI(config?: any): {
+  api: DatabaseAPI;
+  testManager: TestDatabaseManager;
+  testHelpers: DatabaseTestHelpers;
 } {
   const testManager = new TestDatabaseManager(config);
   const dbManager = testManager.getDatabase();
@@ -751,4 +874,4 @@ export function createTestDatabaseAPI(config?: any): {
 export const dbAPI = createDatabaseAPI();
 
 // Export test utilities
-export { TestDataFixtures } from './test-utils';
+export { TestDataFixtures } from "./test-utils";

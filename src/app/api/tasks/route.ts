@@ -1,17 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createDatabaseAPI } from '@/lib/db/api';
-import { CreateTaskData, TaskFilters } from '@/types/tasks';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from "next/server";
+import { createDatabaseAPI } from "@/lib/db/api";
+import { CreateTaskData, TaskFilters } from "@/types/tasks";
+import type { TaskStatus, Priority } from "@/types/utils";
+import { z } from "zod";
 
 // Validation schemas
 const createTaskSchema = z.object({
   name: z.string().min(1).max(255),
   description: z.string().optional(),
-  priority: z.enum(['none', 'low', 'medium', 'high']).default('none'),
-  status: z.enum(['todo', 'in-progress', 'completed', 'archived']).default('todo'),
-  dueDate: z.string().datetime().optional(),
-  estimate: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-  actualTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  priority: z.enum(["None", "Low", "Medium", "High"]).default("None"),
+  status: z.enum(["todo", "in_progress", "done", "archived"]).default("todo"),
+  deadline: z.string().datetime().optional(),
+  estimate: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional(),
+  actualTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional(),
   isRecurring: z.boolean().default(false),
   recurringPattern: z.any().optional(),
   listId: z.string().optional(),
@@ -29,7 +36,7 @@ const taskFiltersSchema = z.object({
   dueDate: z.string().optional(),
   completed: z.coerce.boolean().optional(),
   sortBy: z.string().optional(),
-  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
 });
 
 /**
@@ -39,53 +46,59 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const filters = Object.fromEntries(searchParams.entries());
-    
+
     // Validate and parse filters
     const parsedFilters = taskFiltersSchema.parse(filters);
-    
+
     const dbAPI = createDatabaseAPI();
     await dbAPI.getDatabase().initialize();
-    
+
     // Convert filters to database format
-    const dbFilters: TaskFilters = {
+    const dbFilters = {
       search: parsedFilters.search,
-      status: parsedFilters.status as any,
-      priority: parsedFilters.priority as any,
+      status: parsedFilters.status as TaskStatus | undefined,
+      priority: parsedFilters.priority as Priority | undefined,
       listId: parsedFilters.listId,
-      dueDate: parsedFilters.dueDate ? new Date(parsedFilters.dueDate) : undefined,
-      completed: parsedFilters.completed,
+      dateFrom: parsedFilters.dueDate
+        ? new Date(parsedFilters.dueDate)
+        : undefined,
+      dateTo: parsedFilters.dueDate
+        ? new Date(parsedFilters.dueDate)
+        : undefined,
     };
-    
+
     // Get tasks with pagination
-    const tasks = await dbAPI.getUserTasks('default-user', dbFilters);
-    
+    const tasks = await dbAPI.getUserTasks("default-user", dbFilters);
+
     // Apply sorting
     const sortedTasks = tasks.sort((a, b) => {
-      const { sortBy = 'createdAt', sortOrder = 'desc' } = parsedFilters;
-      const multiplier = sortOrder === 'asc' ? 1 : -1;
-      
+      const { sortBy = "createdAt", sortOrder = "desc" } = parsedFilters;
+      const multiplier = sortOrder === "asc" ? 1 : -1;
+
       switch (sortBy) {
-        case 'name':
+        case "name":
           return multiplier * a.name.localeCompare(b.name);
-        case 'dueDate':
-          if (!a.dueDate && !b.dueDate) return 0;
-          if (!a.dueDate) return 1;
-          if (!b.dueDate) return -1;
-          return multiplier * (a.dueDate.getTime() - b.dueDate.getTime());
-        case 'priority':
-          const priorityOrder = { high: 3, medium: 2, low: 1, none: 0 };
-          return multiplier * (priorityOrder[b.priority] - priorityOrder[a.priority]);
-        case 'createdAt':
+        case "dueDate":
+          if (!a.deadline && !b.deadline) return 0;
+          if (!a.deadline) return 1;
+          if (!b.deadline) return -1;
+          return multiplier * (a.deadline.getTime() - b.deadline.getTime());
+        case "priority":
+          const priorityOrder = { High: 3, Medium: 2, Low: 1, None: 0 };
+          return (
+            multiplier * (priorityOrder[b.priority] - priorityOrder[a.priority])
+          );
+        case "createdAt":
         default:
           return multiplier * (a.createdAt.getTime() - b.createdAt.getTime());
       }
     });
-    
+
     // Apply pagination
     const startIndex = (parsedFilters.page - 1) * parsedFilters.limit;
     const endIndex = startIndex + parsedFilters.limit;
     const paginatedTasks = sortedTasks.slice(startIndex, endIndex);
-    
+
     const response = {
       success: true,
       data: paginatedTasks,
@@ -99,19 +112,20 @@ export async function GET(request: NextRequest) {
       },
       filters: parsedFilters,
     };
-    
+
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error fetching tasks:', error);
-    
+    console.error("Error fetching tasks:", error);
+
     const errorResponse = {
       success: false,
       error: {
-        code: 'TASKS_FETCH_ERROR',
-        message: error instanceof Error ? error.message : 'Failed to fetch tasks',
+        code: "TASKS_FETCH_ERROR",
+        message:
+          error instanceof Error ? error.message : "Failed to fetch tasks",
       },
     };
-    
+
     return NextResponse.json(errorResponse, { status: 500 });
   }
 }
@@ -123,45 +137,45 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const parsedData = createTaskSchema.parse(body);
-    
+
     const dbAPI = createDatabaseAPI();
     await dbAPI.getDatabase().initialize();
-    
+
     // Create task
     const newTask = await dbAPI.createTask({
       name: parsedData.name,
       description: parsedData.description,
       priority: parsedData.priority,
       status: parsedData.status,
-      dueDate: parsedData.dueDate ? new Date(parsedData.dueDate) : undefined,
+      deadline: parsedData.deadline ? new Date(parsedData.deadline) : undefined,
       estimate: parsedData.estimate,
       actualTime: parsedData.actualTime,
       isRecurring: parsedData.isRecurring,
       recurringPattern: parsedData.recurringPattern,
-      userId: 'default-user',
-      listId: parsedData.listId,
+      userId: "default-user",
+      listId: parsedData.listId || "default-list",
       parentTaskId: parsedData.parentTaskId,
       position: parsedData.position,
     });
-    
+
     const response = {
       success: true,
       data: newTask,
-      message: 'Task created successfully',
+      message: "Task created successfully",
     };
-    
     return NextResponse.json(response, { status: 201 });
   } catch (error) {
-    console.error('Error creating task:', error);
-    
+    console.error("Error creating task:", error);
+
     const errorResponse = {
       success: false,
       error: {
-        code: 'TASK_CREATE_ERROR',
-        message: error instanceof Error ? error.message : 'Failed to create task',
+        code: "TASK_CREATE_ERROR",
+        message:
+          error instanceof Error ? error.message : "Failed to create task",
       },
     };
-    
+
     return NextResponse.json(errorResponse, { status: 400 });
   }
 }

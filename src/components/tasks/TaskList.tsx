@@ -1,24 +1,25 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { TaskCard } from './TaskCard';
-import { AppTask } from '@/types/tasks';
-import { 
-  ChevronDown, 
-  ChevronUp, 
-  CheckCircle2, 
-  Circle, 
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { TaskCard } from "./TaskCard";
+import { AppTask } from "@/types/tasks";
+import {
+  ChevronDown,
+  ChevronUp,
+  CheckCircle2,
+  Circle,
   Clock,
   Flag,
   Filter,
   SortAsc,
   SortDesc,
   Grid,
-  List
-} from 'lucide-react';
+  List,
+} from "lucide-react";
+import { TaskId } from "@/types/utils";
 
 interface TaskListProps {
   tasks: AppTask[];
@@ -27,17 +28,17 @@ interface TaskListProps {
   emptyMessage?: string;
   onTaskSelect?: (taskId: string, selected: boolean) => void;
   onTaskEdit?: (task: AppTask) => void;
-  onTaskComplete?: (taskId: string) => void;
-  onTaskDelete?: (taskId: string) => void;
-  onTaskDuplicate?: (taskId: string) => void;
+  onTaskComplete?: (taskId: TaskId) => void;
+  onTaskDelete?: (taskId: TaskId) => void;
+  onTaskDuplicate?: (taskId: TaskId) => void;
   className?: string;
   compact?: boolean;
   showActions?: boolean;
   loading?: boolean;
 }
 
-type SortOption = 'name' | 'dueDate' | 'priority' | 'createdAt' | 'status';
-type GroupBy = 'none' | 'status' | 'priority' | 'dueDate';
+type SortOption = "name" | "dueDate" | "priority" | "createdAt" | "status";
+type GroupBy = "none" | "status" | "priority" | "dueDate";
 
 export function TaskList({
   tasks,
@@ -52,94 +53,109 @@ export function TaskList({
   className,
   compact = false,
   showActions = true,
-  loading = false
+  loading = false,
 }: TaskListProps) {
-  const [sortBy, setSortBy] = useState<SortOption>('createdAt');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [groupBy, setGroupBy] = useState<GroupBy>('none');
+  const [sortBy, setSortBy] = useState<SortOption>("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [groupBy, setGroupBy] = useState<GroupBy>("none");
   const [showCompleted, setShowCompleted] = useState(true);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
 
   // Filter and sort tasks
-  const filteredTasks = tasks.filter(task => {
-    if (!showCompleted && task.status === 'completed') return false;
+  const filteredTasks = tasks.filter((task) => {
+    if (!showCompleted && task.status === "done") return false;
     return true;
   });
 
   const sortedTasks = [...filteredTasks].sort((a, b) => {
     let comparison = 0;
-    
+
     switch (sortBy) {
-      case 'name':
+      case "name":
         comparison = a.name.localeCompare(b.name);
         break;
-      case 'dueDate':
+      case "dueDate":
         if (!a.dueDate && !b.dueDate) comparison = 0;
         else if (!a.dueDate) comparison = 1;
         else if (!b.dueDate) comparison = -1;
-        else comparison = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        else
+          comparison =
+            new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
         break;
-      case 'priority':
-        const priorityOrder = { high: 3, medium: 2, low: 1, none: 0 };
-        comparison = priorityOrder[b.priority] - priorityOrder[a.priority];
+      case "priority":
+        const priorityOrder = { High: 3, Medium: 2, Low: 1, None: 0 };
+        comparison =
+          priorityOrder[b.priority as keyof typeof priorityOrder] -
+          priorityOrder[a.priority as keyof typeof priorityOrder];
         break;
-      case 'status':
+      case "status":
         comparison = a.status.localeCompare(b.status);
         break;
-      case 'createdAt':
+      case "createdAt":
       default:
-        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        comparison =
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         break;
     }
-    
-    return sortOrder === 'asc' ? comparison : -comparison;
+
+    return sortOrder === "asc" ? comparison : -comparison;
   });
 
   // Group tasks if needed
-  const groupedTasks = groupBy === 'none' 
-    ? [{ group: null, tasks: sortedTasks }]
-    : Object.entries(
-        sortedTasks.reduce((groups, task) => {
-          let groupKey: string;
-          switch (groupBy) {
-            case 'status':
-              groupKey = task.status;
-              break;
-            case 'priority':
-              groupKey = task.priority;
-              break;
-            case 'dueDate':
-              if (!task.dueDate) groupKey = 'No due date';
-              else {
-                const today = new Date();
-                const taskDate = new Date(task.dueDate);
-                const isToday = taskDate.toDateString() === today.toDateString();
-                const isOverdue = taskDate < today && task.status !== 'completed';
-                if (isOverdue) groupKey = 'Overdue';
-                else if (isToday) groupKey = 'Today';
-                else if (taskDate <= new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)) groupKey = 'This week';
-                else groupKey = 'Later';
-              }
-              break;
-            default:
-              groupKey = 'All';
-          }
-          
-          if (!groups[groupKey]) groups[groupKey] = [];
-          groups[groupKey].push(task);
-          return groups;
-        }, {} as Record<string, AppTask[]>)
-      ).map(([group, tasks]) => ({ group, tasks }));
+  const groupedTasks =
+    groupBy === "none"
+      ? [{ group: null, tasks: sortedTasks }]
+      : Object.entries(
+          sortedTasks.reduce((groups, task) => {
+            let groupKey: string;
+            switch (groupBy) {
+              case "status":
+                groupKey = task.status;
+                break;
+              case "priority":
+                groupKey = task.priority;
+                break;
+              case "dueDate":
+                if (!task.dueDate) groupKey = "No due date";
+                else {
+                  const today = new Date();
+                  const taskDate = new Date(task.dueDate);
+                  const isToday =
+                    taskDate.toDateString() === today.toDateString();
+                  const isOverdue = taskDate < today && task.status !== "done";
+                  if (isOverdue) groupKey = "Overdue";
+                  else if (isToday) groupKey = "Today";
+                  else if (
+                    taskDate <=
+                    new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+                  )
+                    groupKey = "This week";
+                  else groupKey = "Later";
+                }
+                break;
+              default:
+                groupKey = "All";
+            }
+
+            if (!groups[groupKey]) groups[groupKey] = [];
+            groups[groupKey].push(task);
+            return groups;
+          }, {} as Record<string, AppTask[]>)
+        ).map(([group, tasks]) => ({ group, tasks }));
 
   const getGroupIcon = (group: string | null, groupBy: GroupBy) => {
     if (!group) return null;
-    
+
     switch (groupBy) {
-      case 'status':
-        return group === 'completed' ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Circle className="h-4 w-4" />;
-      case 'priority':
+      case "status":
+        return group === "done" ? (
+          <CheckCircle2 className="h-4 w-4 text-green-500" />
+        ) : (
+          <Circle className="h-4 w-4" />
+        );
+      case "priority":
         return <Flag className="h-4 w-4" />;
-      case 'dueDate':
+      case "dueDate":
         return <Clock className="h-4 w-4" />;
       default:
         return null;
@@ -148,13 +164,13 @@ export function TaskList({
 
   const getGroupTitle = (group: string | null, groupBy: GroupBy) => {
     if (!group) return title;
-    
+
     switch (groupBy) {
-      case 'status':
+      case "status":
         return group.charAt(0).toUpperCase() + group.slice(1);
-      case 'priority':
-        return group.charAt(0).toUpperCase() + group.slice(1) + ' Priority';
-      case 'dueDate':
+      case "priority":
+        return group.charAt(0).toUpperCase() + group.slice(1) + " Priority";
+      case "dueDate":
         return group;
       default:
         return group;
@@ -163,7 +179,7 @@ export function TaskList({
 
   if (loading) {
     return (
-      <div className={cn('space-y-4', className)}>
+      <div className={cn("space-y-4", className)}>
         <div className="animate-pulse">
           <div className="h-8 bg-muted rounded w-32 mb-4"></div>
           <div className="space-y-3">
@@ -178,7 +194,7 @@ export function TaskList({
 
   if (sortedTasks.length === 0) {
     return (
-      <div className={cn('text-center py-12', className)}>
+      <div className={cn("text-center py-12", className)}>
         <div className="text-muted-foreground">
           <Circle className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p className="text-lg font-medium mb-2">{emptyMessage}</p>
@@ -189,7 +205,7 @@ export function TaskList({
   }
 
   return (
-    <div className={cn('space-y-6', className)}>
+    <div className={cn("space-y-6", className)}>
       {/* Header and Controls */}
       <div className="flex items-center justify-between">
         <div>
@@ -204,17 +220,17 @@ export function TaskList({
           {/* View Mode Toggle */}
           <div className="flex border rounded-md">
             <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              variant={viewMode === "list" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setViewMode('list')}
+              onClick={() => setViewMode("list")}
               className="rounded-r-none"
             >
               <List className="h-4 w-4" />
             </Button>
             <Button
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              variant={viewMode === "grid" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setViewMode('grid')}
+              onClick={() => setViewMode("grid")}
               className="rounded-l-none"
             >
               <Grid className="h-4 w-4" />
@@ -250,9 +266,13 @@ export function TaskList({
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
           >
-            {sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+            {sortOrder === "asc" ? (
+              <SortAsc className="h-4 w-4" />
+            ) : (
+              <SortDesc className="h-4 w-4" />
+            )}
           </Button>
 
           {/* Show Completed Toggle */}
@@ -260,7 +280,7 @@ export function TaskList({
             variant="ghost"
             size="sm"
             onClick={() => setShowCompleted(!showCompleted)}
-            className={!showCompleted && 'opacity-50'}
+            className={showCompleted ? "" : "opacity-50"}
           >
             <Filter className="h-4 w-4 mr-2" />
             Completed
@@ -271,9 +291,9 @@ export function TaskList({
       {/* Task Groups */}
       <div className="space-y-6">
         {groupedTasks.map(({ group, tasks: groupTasks }) => (
-          <div key={group || 'default'} className="space-y-3">
+          <div key={group || "default"} className="space-y-3">
             {/* Group Header */}
-            {groupBy !== 'none' && group && (
+            {groupBy !== "none" && group && (
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 {getGroupIcon(group, groupBy)}
                 <span>{getGroupTitle(group, groupBy)}</span>
@@ -284,11 +304,13 @@ export function TaskList({
             )}
 
             {/* Tasks */}
-            <div className={cn(
-              viewMode === 'grid' 
-                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
-                : 'space-y-3'
-            )}>
+            <div
+              className={cn(
+                viewMode === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                  : "space-y-3"
+              )}
+            >
               {groupTasks.map((task) => (
                 <TaskCard
                   key={task.id}
@@ -300,7 +322,7 @@ export function TaskList({
                   onDuplicate={onTaskDuplicate}
                   compact={compact}
                   showActions={showActions}
-                  className={viewMode === 'grid' ? 'h-fit' : ''}
+                  className={viewMode === "grid" ? "h-fit" : ""}
                 />
               ))}
             </div>
@@ -310,7 +332,8 @@ export function TaskList({
 
       {/* Summary */}
       <div className="text-center text-sm text-muted-foreground border-t pt-4">
-        {sortedTasks.length} task{sortedTasks.length !== 1 ? 's' : ''} • {sortedTasks.filter(t => t.status === 'completed').length} completed
+        {sortedTasks.length} task{sortedTasks.length !== 1 ? "s" : ""} •{" "}
+        {sortedTasks.filter((t) => t.status === "done").length} completed
       </div>
     </div>
   );

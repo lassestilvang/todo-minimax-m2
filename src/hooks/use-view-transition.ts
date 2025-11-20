@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useCallback } from 'react';
+import { useCallback } from "react";
 
 /**
  * Custom hook for View Transition API support
@@ -8,19 +8,19 @@ import { useCallback } from 'react';
  */
 export function useViewTransition() {
   // Check if View Transition API is supported
-  const supportsViewTransition = typeof document !== 'undefined' && 'startViewTransition' in document;
+  const supportsViewTransition =
+    typeof document !== "undefined" && "startViewTransition" in document;
 
   /**
    * Execute a function with view transition
-   * @param callback - Function to execute during the transition
-   * @returns The result of the callback function or Promise for async operations
+   * @param callback - Async function to execute during the transition (must return Promise<void>)
    */
-  const withViewTransition = useCallback(<T>(callback: () => T): T | Promise<T> => {
+  const withViewTransition = useCallback(async (callback: () => Promise<void>): Promise<void> => {
     if (supportsViewTransition) {
-      return document.startViewTransition(callback);
+      document.startViewTransition(callback);
+    } else {
+      await callback();
     }
-    // Fallback: execute without transition
-    return callback();
   }, [supportsViewTransition]);
 
   /**
@@ -41,27 +41,26 @@ export function useViewTransition() {
    * @param transitionName - Name of the transition
    * @param phase - 'old' or 'new' transition phase
    */
-  const applyTransitionStyles = useCallback((
-    element: HTMLElement, 
-    transitionName: string, 
-    phase: 'old' | 'new'
-  ) => {
-    element.style.viewTransitionName = transitionName;
-    
-    if (phase === 'old') {
-      element.style.animation = 'view-out 0.3s ease-in-out';
-    } else {
-      element.style.animation = 'view-in 0.3s ease-in-out';
-    }
-  }, []);
+  const applyTransitionStyles = useCallback(
+    (element: HTMLElement, transitionName: string, phase: "old" | "new") => {
+          element.style.viewTransitionName = transitionName;
+
+      if (phase === "old") {
+        element.style.animation = "view-out 0.3s ease-in-out";
+      } else {
+        element.style.animation = "view-in 0.3s ease-in-out";
+      }
+    },
+    []
+  );
 
   /**
    * Clean up transition styles
    * @param element - DOM element to clean up
    */
   const cleanupTransitionStyles = useCallback((element: HTMLElement) => {
-    element.style.viewTransitionName = '';
-    element.style.animation = '';
+    element.style.viewTransitionName = "";
+    element.style.animation = "";
   }, []);
 
   /**
@@ -70,20 +69,20 @@ export function useViewTransition() {
   const getTransitionClasses = useCallback(() => {
     return {
       // View transition classes
-      fade: 'view-fade-transition',
-      slide: 'view-slide-transition',
-      slideUp: 'view-slide-up-transition',
-      slideDown: 'view-slide-down-transition',
-      
+      fade: "view-fade-transition",
+            slide: "view-slide-transition",
+      slideUp: "view-slide-up-transition",
+      slideDown: "view-slide-down-transition",
+
       // View-specific classes
-      today: 'view-today-transition',
-      next7: 'view-next7-transition',
-      upcoming: 'view-upcoming-transition',
-      all: 'view-all-transition',
-      
+      today: "view-today-transition",
+            next7: "view-next7-transition",
+      upcoming: "view-upcoming-transition",
+      all: "view-all-transition",
+
       // List transition classes
-      list: 'view-list-transition',
-      modal: 'view-modal-transition',
+      list: "view-list-transition",
+      modal: "view-modal-transition",
     };
   }, []);
 
@@ -92,7 +91,6 @@ export function useViewTransition() {
     withViewTransition,
     getTransitionNames,
     applyTransitionStyles,
-    cleanupTransitionStyles,
-    getTransitionClasses,
+     getTransitionClasses,
   };
 }

@@ -265,7 +265,6 @@ export const cleanupStores = () => {
  * Store provider component for React applications
  */
 import React, { createContext, useContext, useEffect } from 'react';
-import { initializeStores, cleanupStores } from './index';
 
 interface StoreContextValue {
   taskStore: any;

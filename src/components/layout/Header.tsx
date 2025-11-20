@@ -37,7 +37,7 @@ export function Header({ onMenuClick, onSearchToggle, searchOpen }: HeaderProps)
     user 
   } = useAppStore();
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // TODO: Implement search functionality
     console.log('Searching for:', searchQuery);
@@ -115,7 +115,7 @@ export function Header({ onMenuClick, onSearchToggle, searchOpen }: HeaderProps)
                 type="text"
                 placeholder="Search tasks, lists, and more..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                 className="pr-8"
                 autoFocus
               />
@@ -218,7 +218,7 @@ export function Header({ onMenuClick, onSearchToggle, searchOpen }: HeaderProps)
               type="text"
               placeholder="Search tasks, lists, and more..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
               className="pr-8"
               autoFocus
             />

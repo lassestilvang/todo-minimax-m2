@@ -6,43 +6,43 @@
  * POST /api/tasks/[id]/subtasks - Create new subtask
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { dbAPI } from '../../../../../lib/db/api';
+import { NextRequest, NextResponse } from "next/server";
+import { dbAPI } from "../../../../../lib/db/api";
 import { 
   withAuth, 
   withRateLimit, 
-  withErrorHandling 
-} from '../../../_lib/middleware';
+  withErrorHandling ,
+} from "../../../_lib/middleware";
 import { 
   createSuccessResponse,
   createValidationError,
-  createNotFoundError 
-} from '../../../_lib/utils';
-import { 
-  createSubtaskSchema,
-  idParamSchema 
-} from '../../../_lib/validation';
-import type { ApiContext } from '../../../_lib/types';
-
+  createNotFoundError ,
+} from "../../../_lib/utils";
+import {  createSubtaskSchema, idParamSchema } from "../../../_lib/validation";
+import type { ApiContext } from "../../../_lib/types";
+ 
 // Apply middleware stack
 const handler = withErrorHandling(
   withRateLimit(
     withAuth(async (req: NextRequest, context: ApiContext) => {
       const { id: taskId } = await getTaskId(req);
-      
-      if (req.method === 'GET') {
+
+      if (req.method === "GET") {
         return handleGetSubtasks(req, context, taskId);
-      } else if (req.method === 'POST') {
+            } else if (req.method === "POST") {
         return handleCreateSubtask(req, context, taskId);
       } else {
-        return NextResponse.json({
-          success: false,
-          error: {
-            code: 'METHOD_NOT_ALLOWED',
-            message: `Method ${req.method} not allowed`,
-            statusCode: 405
-          }
-        }, { status: 405 });
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: "METHOD_NOT_ALLOWED",
+              message: `Method ${req.method} not allowed`,
+              statusCode: 405,
+            },
+          },
+          { status: 405 }
+        );
       }
     })
   )
@@ -58,17 +58,17 @@ export { handler as GET, handler as POST };
  * Extract and validate task ID from request
  */
 async function getTaskId(req: NextRequest): Promise<{ id: string }> {
-  const segments = req.nextUrl.pathname.split('/');
+  const segments = req.nextUrl.pathname.split("/");
   const taskId = segments[segments.length - 3]; // tasks/[id]/subtasks
   
   const validation = idParamSchema.safeParse({ id: taskId });
   if (!validation.success) {
-    const validationError = validation.error.errors[0];
+    const validationError = validation.error.issues[0];
     const error = createValidationError(
-      validationError.path.join('.'),
+      validationError.path.join("."),
       validationError.message,
       validationError.input,
-      'INVALID_TASK_ID'
+      "INVALID_TASK_ID"
     );
     
     throw new Error(JSON.stringify(error));
@@ -81,57 +81,72 @@ async function getTaskId(req: NextRequest): Promise<{ id: string }> {
 // GET /api/tasks/[id]/subtasks - Get subtasks for a task
 // =============================================================================
 
-async function handleGetSubtasks(req: NextRequest, context: ApiContext, taskId: string): Promise<NextResponse> {
+async function handleGetSubtasks(
+  req: NextRequest,
+  context: ApiContext,
+  taskId: string
+): Promise<NextResponse> {
   try {
     // Verify task exists and belongs to user
     const task = await dbAPI.getTaskWithDetails(taskId);
     if (!task) {
-      const error = createNotFoundError('Task', taskId);
-      return NextResponse.json({
-        success: false,
-        error: {
-          ...error,
-          timestamp: new Date().toISOString()
-        }
-      }, { status: 404 });
+      const error = createNotFoundError("Task", taskId);
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            ...error,
+            timestamp: new Date().toISOString(),
+          },
+        },
+        { status: 404 }
+      );
     }
 
     if (task.userId !== context.userId) {
-      return NextResponse.json({
-        success: false,
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Access denied to this task',
-          statusCode: 403,
-          timestamp: new Date().toISOString()
-        }
-      }, { status: 403 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "FORBIDDEN",
+            message: "Access denied to this task",
+            statusCode: 403,
+            timestamp: new Date().toISOString(),
+          },
+        },
+        { status: 403 }
+      );
     }
 
     // Get subtasks
     const subtasks = await dbAPI.getSubtasks(taskId);
 
-    return createSuccessResponse({
-      subtasks,
-      total: subtasks.length,
-      completed: subtasks.filter(st => st.isCompleted).length,
-      pending: subtasks.filter(st => !st.isCompleted).length
-    }, {
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('[Task Subtasks API] Error fetching subtasks:', error);
-    
-    return NextResponse.json({
-      success: false,
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: 'Failed to fetch subtasks',
-        statusCode: 500,
-        timestamp: new Date().toISOString()
+    return createSuccessResponse(
+          {
+        subtasks,
+        total: subtasks.length,
+        completed: subtasks.filter((st) => st.isCompleted).length,
+        pending: subtasks.filter((st) => !st.isCompleted).length,
+      },
+      {
+        timestamp: new Date().toISOString(),
       }
-    }, { status: 500 });
+    );
+  } catch (error) {
+    console.error("[Task Subtasks API] Error fetching subtasks:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Failed to fetch subtasks",
+          statusCode: 500,
+          timestamp: new Date().toISOString(),
+        },
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -139,31 +154,41 @@ async function handleGetSubtasks(req: NextRequest, context: ApiContext, taskId: 
 // POST /api/tasks/[id]/subtasks - Create new subtask
 // =============================================================================
 
-async function handleCreateSubtask(req: NextRequest, context: ApiContext, taskId: string): Promise<NextResponse> {
+async function handleCreateSubtask(
+  req: NextRequest,
+  context: ApiContext,
+  taskId: string
+): Promise<NextResponse> {
   try {
     // Verify task exists and belongs to user
     const task = await dbAPI.getTaskWithDetails(taskId);
     if (!task) {
-      const error = createNotFoundError('Task', taskId);
-      return NextResponse.json({
-        success: false,
-        error: {
-          ...error,
-          timestamp: new Date().toISOString()
-        }
-      }, { status: 404 });
+      const error = createNotFoundError("Task", taskId);
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            ...error,
+            timestamp: new Date().toISOString(),
+          },
+        },
+        { status: 404 }
+      );
     }
 
     if (task.userId !== context.userId) {
-      return NextResponse.json({
-        success: false,
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Access denied to this task',
-          statusCode: 403,
-          timestamp: new Date().toISOString()
-        }
-      }, { status: 403 });
+      return NextResponse.json(
+              {
+          success: false,
+          error: {
+            code: "FORBIDDEN",
+            message: "Access denied to this task",
+            statusCode: 403,
+            timestamp: new Date().toISOString(),
+          },
+        },
+        { status: 403 }
+      );
     }
 
     // Parse and validate request body
@@ -171,21 +196,24 @@ async function handleCreateSubtask(req: NextRequest, context: ApiContext, taskId
     const validation = createSubtaskSchema.safeParse({ ...body, taskId });
 
     if (!validation.success) {
-      const validationError = validation.error.errors[0];
+      const validationError = validation.error.issues[0];
       const error = createValidationError(
-        validationError.path.join('.'),
+        validationError.path.join("."),
         validationError.message,
         validationError.input,
-        'VALIDATION_ERROR'
+        "VALIDATION_ERROR"
       );
-      
-      return NextResponse.json({
-        success: false,
-        error: {
-          ...error,
-          timestamp: new Date().toISOString()
-        }
-      }, { status: 400 });
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            ...error,
+            timestamp: new Date().toISOString(),
+          },
+            },
+        { status: 400 }
+      );
     }
 
     const { name, position } = validation.data;
@@ -194,31 +222,37 @@ async function handleCreateSubtask(req: NextRequest, context: ApiContext, taskId
     const existingSubtasks = await dbAPI.getSubtasks(taskId);
     const nextPosition = position || existingSubtasks.length;
 
-    // Create subtask
-    const newSubtask = await dbAPI.createSubtask({
+     const newSubtask = await dbAPI.createSubtask({
       name,
       taskId,
-      position: nextPosition
+      position: nextPosition,
+      isCompleted: false,
     });
 
-    return createSuccessResponse({
-      subtask: newSubtask
-    }, {
-      action: 'created',
-      timestamp: new Date().toISOString()
-    }, 201);
-
+    return createSuccessResponse(
+      {
+        subtask: newSubtask,
+      },
+      {
+        action: "created",
+        timestamp: new Date().toISOString(),
+      },
+      201
+    );
   } catch (error) {
-    console.error('[Task Subtasks API] Error creating subtask:', error);
-    
-    return NextResponse.json({
-      success: false,
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: 'Failed to create subtask',
-        statusCode: 500,
-        timestamp: new Date().toISOString()
-      }
-    }, { status: 500 });
+    console.error("[Task Subtasks API] Error creating subtask:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Failed to create subtask",
+          statusCode: 500,
+          timestamp: new Date().toISOString(),
+        },
+      },
+      { status: 500 }
+    );
   }
 }

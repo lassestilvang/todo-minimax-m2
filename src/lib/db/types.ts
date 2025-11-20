@@ -27,6 +27,9 @@ export interface List extends BaseEntity {
   color: string;
   emoji: string;
   isDefault: boolean;
+  isFavorite: boolean;
+  description?: string;
+  position: number;
   userId: string;
 }
 

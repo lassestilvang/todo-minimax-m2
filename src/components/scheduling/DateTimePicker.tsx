@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { 
+import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
   Calendar,
   Clock,
   Repeat,
@@ -16,8 +16,8 @@ import {
   ChevronRight,
   Plus,
   X,
-  Today
-} from 'lucide-react';
+  Calendar as TodayIcon, // Alias for Today button
+} from "lucide-react";
 
 interface DatePickerProps {
   value?: Date;
@@ -62,16 +62,26 @@ export function DatePicker({
   disabled = false,
   minDate,
   maxDate,
-  showTime = false
+  showTime = false,
 }: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(value || new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(value);
 
-  const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
 
   const getDaysInMonth = (date: Date) => {
@@ -83,17 +93,17 @@ export function DatePicker({
     const startingDayOfWeek = firstDay.getDay();
 
     const days = [];
-    
+
     // Add empty cells for days before the first day of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(null);
     }
-    
+
     // Add all days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       days.push(new Date(year, month, day));
     }
-    
+
     return days;
   };
 
@@ -114,18 +124,22 @@ export function DatePicker({
 
   const handleDateClick = (date: Date | null) => {
     if (!date || isDateDisabled(date)) return;
-    
+
     setSelectedDate(date);
     onChange(date);
     setIsOpen(false);
   };
 
   const handlePrevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    setCurrentDate(
+      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
+    );
   };
 
   const handleNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    setCurrentDate(
+      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
+    );
   };
 
   const handleToday = () => {
@@ -136,17 +150,19 @@ export function DatePicker({
   };
 
   const formatDisplayDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
   return (
-    <div className={cn('relative', className)}>
-      {label && <Label className="text-sm font-medium mb-2 block">{label}</Label>}
-      
+    <div className={cn("relative", className)}>
+      {label && (
+        <Label className="text-sm font-medium mb-2 block">{label}</Label>
+      )}
+
       <Button
         variant="outline"
         onClick={() => !disabled && setIsOpen(!isOpen)}
@@ -164,11 +180,11 @@ export function DatePicker({
             <Button variant="ghost" size="icon" onClick={handlePrevMonth}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            
+
             <h3 className="font-semibold">
               {months[currentDate.getMonth()]} {currentDate.getFullYear()}
             </h3>
-            
+
             <Button variant="ghost" size="icon" onClick={handleNextMonth}>
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -176,19 +192,32 @@ export function DatePicker({
 
           {/* Quick Actions */}
           <div className="flex gap-2 mb-4">
-            <Button variant="outline" size="sm" onClick={handleToday} className="flex-1">
-              <Today className="h-3 w-3 mr-1" />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleToday}
+              className="flex-1"
+            >
+              <TodayIcon className="h-3 w-3 mr-1" />
               Today
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setIsOpen(false)} className="flex-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsOpen(false)}
+              className="flex-1"
+            >
               Close
             </Button>
           </div>
 
           {/* Days of Week Header */}
           <div className="grid grid-cols-7 gap-1 mb-2">
-            {daysOfWeek.map(day => (
-              <div key={day} className="text-center text-xs font-medium text-muted-foreground py-1">
+            {daysOfWeek.map((day) => (
+              <div
+                key={day}
+                className="text-center text-xs font-medium text-muted-foreground py-1"
+              >
                 {day}
               </div>
             ))}
@@ -204,11 +233,18 @@ export function DatePicker({
                 disabled={!date || isDateDisabled(date!)}
                 onClick={() => handleDateClick(date)}
                 className={cn(
-                  'h-8 w-8 p-0 text-sm',
-                  !date && 'invisible',
-                  date && isDateToday(date) && 'bg-primary text-primary-foreground',
-                  date && isDateSelected(date) && 'bg-primary text-primary-foreground',
-                  date && !isDateToday(date) && !isDateSelected(date) && 'hover:bg-muted'
+                  "h-8 w-8 p-0 text-sm",
+                  !date && "invisible",
+                  date &&
+                    isDateToday(date) &&
+                    "bg-primary text-primary-foreground",
+                  date &&
+                    isDateSelected(date) &&
+                    "bg-primary text-primary-foreground",
+                  date &&
+                    !isDateToday(date) &&
+                    !isDateSelected(date) &&
+                    "hover:bg-muted"
                 )}
               >
                 {date?.getDate()}
@@ -220,10 +256,7 @@ export function DatePicker({
 
       {/* Click outside to close */}
       {isOpen && (
-        <div 
-          className="fixed inset-0 z-40" 
-          onClick={() => setIsOpen(false)}
-        />
+        <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
       )}
     </div>
   );
@@ -235,29 +268,29 @@ export function TimePicker({
   label,
   placeholder = "Select time",
   className,
-  disabled = false
+  disabled = false,
 }: TimePickerProps) {
-  const [time, setTime] = useState(value || '');
+  const [time, setTime] = useState(value || "");
 
   const timeOptions = [
-    { label: 'No specific time', value: '' },
-    { label: '9:00 AM', value: '09:00' },
-    { label: '10:00 AM', value: '10:00' },
-    { label: '11:00 AM', value: '11:00' },
-    { label: '12:00 PM', value: '12:00' },
-    { label: '1:00 PM', value: '13:00' },
-    { label: '2:00 PM', value: '14:00' },
-    { label: '3:00 PM', value: '15:00' },
-    { label: '4:00 PM', value: '16:00' },
-    { label: '5:00 PM', value: '17:00' },
-    { label: '6:00 PM', value: '18:00' },
-    { label: '7:00 PM', value: '19:00' },
-    { label: '8:00 PM', value: '20:00' },
-    { label: '9:00 PM', value: '21:00' },
+    { label: "No specific time", value: "" },
+    { label: "9:00 AM", value: "09:00" },
+    { label: "10:00 AM", value: "10:00" },
+    { label: "11:00 AM", value: "11:00" },
+    { label: "12:00 PM", value: "12:00" },
+    { label: "1:00 PM", value: "13:00" },
+    { label: "2:00 PM", value: "14:00" },
+    { label: "3:00 PM", value: "15:00" },
+    { label: "4:00 PM", value: "16:00" },
+    { label: "5:00 PM", value: "17:00" },
+    { label: "6:00 PM", value: "18:00" },
+    { label: "7:00 PM", value: "19:00" },
+    { label: "8:00 PM", value: "20:00" },
+    { label: "9:00 PM", value: "21:00" },
   ];
 
   useEffect(() => {
-    setTime(value || '');
+    setTime(value || "");
   }, [value]);
 
   const handleTimeChange = (newTime: string) => {
@@ -266,24 +299,26 @@ export function TimePicker({
   };
 
   const formatTime = (timeStr: string) => {
-    const [hours, minutes] = timeStr.split(':');
+    const [hours, minutes] = timeStr.split(":");
     const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const ampm = hour >= 12 ? "PM" : "AM";
     const hour12 = hour % 12 || 12;
     return `${hour12}:${minutes} ${ampm}`;
   };
 
   return (
-    <div className={cn('relative', className)}>
-      {label && <Label className="text-sm font-medium mb-2 block">{label}</Label>}
-      
+    <div className={cn("relative", className)}>
+      {label && (
+        <Label className="text-sm font-medium mb-2 block">{label}</Label>
+      )}
+
       <select
         value={time}
         onChange={(e) => handleTimeChange(e.target.value)}
         disabled={disabled}
         className="w-full border rounded-md px-3 py-2 text-sm bg-background"
       >
-        {timeOptions.map(option => (
+        {timeOptions.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
@@ -297,60 +332,72 @@ export function RecurringPicker({
   value,
   onChange,
   label,
-  className
+  className,
 }: RecurringPickerProps) {
   const [isRecurring, setIsRecurring] = useState(!!value);
-  const [recurrenceType, setRecurrenceType] = useState(value?.type || 'none');
+  const [recurrenceType, setRecurrenceType] = useState(value?.type || "none");
   const [interval, setInterval] = useState(value?.interval || 1);
   const [daysOfWeek, setDaysOfWeek] = useState(value?.daysOfWeek || []);
-  const [endDate, setEndDate] = useState(value?.endDate ? new Date(value.endDate) : undefined);
-  const [endAfterOccurrences, setEndAfterOccurrences] = useState(value?.endAfterOccurrences || '');
+  const [endDate, setEndDate] = useState(
+    value?.endDate ? new Date(value.endDate) : undefined
+  );
+  const [endAfterOccurrences, setEndAfterOccurrences] = useState(
+    value?.endAfterOccurrences || ""
+  );
 
   useEffect(() => {
-    if (isRecurring && recurrenceType !== 'none') {
+    if (isRecurring && recurrenceType !== "none") {
       const recurringConfig = {
         type: recurrenceType,
         interval,
-        daysOfWeek: recurrenceType === 'weekly' ? daysOfWeek : undefined,
+        daysOfWeek: recurrenceType === "weekly" ? daysOfWeek : undefined,
         endDate: endDate?.toISOString(),
-        endAfterOccurrences: endAfterOccurrences ? parseInt(endAfterOccurrences) : undefined
+        endAfterOccurrences: endAfterOccurrences
+          ? parseInt(endAfterOccurrences)
+          : undefined,
       };
       onChange(recurringConfig);
     } else {
       onChange(undefined);
     }
-  }, [isRecurring, recurrenceType, interval, daysOfWeek, endDate, endAfterOccurrences, onChange]);
+  }, [
+    isRecurring,
+    recurrenceType,
+    interval,
+    daysOfWeek,
+    endDate,
+    endAfterOccurrences,
+    onChange,
+  ]);
 
   const recurrenceTypes = [
-    { value: 'none', label: 'Does not repeat' },
-    { value: 'daily', label: 'Daily' },
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'monthly', label: 'Monthly' },
-    { value: 'yearly', label: 'Yearly' },
+    { value: "none", label: "Does not repeat" },
+    { value: "daily", label: "Daily" },
+    { value: "weekly", label: "Weekly" },
+    { value: "monthly", label: "Monthly" },
+    { value: "yearly", label: "Yearly" },
   ];
 
   const weekDays = [
-    { value: 0, label: 'Sun' },
-    { value: 1, label: 'Mon' },
-    { value: 2, label: 'Tue' },
-    { value: 3, label: 'Wed' },
-    { value: 4, label: 'Thu' },
-    { value: 5, label: 'Fri' },
-    { value: 6, label: 'Sat' },
+    { value: 0, label: "Sun" },
+    { value: 1, label: "Mon" },
+    { value: 2, label: "Tue" },
+    { value: 3, label: "Wed" },
+    { value: 4, label: "Thu" },
+    { value: 5, label: "Fri" },
+    { value: 6, label: "Sat" },
   ];
 
   const toggleDay = (day: number) => {
-    setDaysOfWeek(prev => 
-      prev.includes(day) 
-        ? prev.filter(d => d !== day)
-        : [...prev, day]
+    setDaysOfWeek((prev: any) =>
+      prev.includes(day) ? prev.filter((d: any) => d !== day) : [...prev, day]
     );
   };
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn("space-y-4", className)}>
       {label && <Label className="text-sm font-medium">{label}</Label>}
-      
+
       <div className="flex items-center gap-2">
         <input
           type="checkbox"
@@ -375,7 +422,7 @@ export function RecurringPicker({
               onChange={(e) => setRecurrenceType(e.target.value)}
               className="w-full border rounded-md px-3 py-2 text-sm"
             >
-              {recurrenceTypes.map(type => (
+              {recurrenceTypes.map((type) => (
                 <option key={type.value} value={type.value}>
                   {type.label}
                 </option>
@@ -384,7 +431,7 @@ export function RecurringPicker({
           </div>
 
           {/* Interval */}
-          {recurrenceType !== 'none' && recurrenceType !== 'daily' && (
+          {recurrenceType !== "none" && recurrenceType !== "daily" && (
             <div>
               <Label className="text-sm font-medium mb-2 block">Every</Label>
               <div className="flex items-center gap-2">
@@ -392,26 +439,35 @@ export function RecurringPicker({
                   type="number"
                   min="1"
                   value={interval}
-                  onChange={(e) => setInterval(parseInt(e.target.value) || 1)}
+                  onChange={(e: any) =>
+                    setInterval(parseInt(e.target.value) || 1)
+                  }
                   className="w-20"
                 />
                 <span className="text-sm text-muted-foreground">
-                  {recurrenceType === 'weekly' ? 'week(s)' : 
-                   recurrenceType === 'monthly' ? 'month(s)' : 'year(s)'}
+                  {recurrenceType === "weekly"
+                    ? "week(s)"
+                    : recurrenceType === "monthly"
+                    ? "month(s)"
+                    : "year(s)"}
                 </span>
               </div>
             </div>
           )}
 
           {/* Days of Week (for weekly recurrence) */}
-          {recurrenceType === 'weekly' && (
+          {recurrenceType === "weekly" && (
             <div>
-              <Label className="text-sm font-medium mb-2 block">Repeat on</Label>
+              <Label className="text-sm font-medium mb-2 block">
+                Repeat on
+              </Label>
               <div className="flex gap-2 flex-wrap">
-                {weekDays.map(day => (
+                {weekDays.map((day) => (
                   <Button
                     key={day.value}
-                    variant={daysOfWeek.includes(day.value) ? "default" : "outline"}
+                    variant={
+                      daysOfWeek.includes(day.value) ? "default" : "outline"
+                    }
                     size="sm"
                     onClick={() => toggleDay(day.value)}
                     className="w-10 h-8 p-0"
@@ -429,31 +485,43 @@ export function RecurringPicker({
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <input type="radio" id="no-end" name="end" defaultChecked />
-                <Label htmlFor="no-end" className="text-sm">Never</Label>
+                <Label htmlFor="no-end" className="text-sm">
+                  Never
+                </Label>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <input type="radio" id="end-date" name="end" />
-                <Label htmlFor="end-date" className="text-sm">On date</Label>
+                <Label htmlFor="end-date" className="text-sm">
+                  On date
+                </Label>
                 <Input
                   type="date"
-                  value={endDate?.toISOString().split('T')[0] || ''}
-                  onChange={(e) => setEndDate(e.target.value ? new Date(e.target.value) : undefined)}
+                  value={endDate?.toISOString().split("T")[0] || ""}
+                  onChange={(e: any) =>
+                    setEndDate(
+                      e.target.value ? new Date(e.target.value) : undefined
+                    )
+                  }
                   className="flex-1"
                 />
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <input type="radio" id="end-after" name="end" />
-                <Label htmlFor="end-after" className="text-sm">After</Label>
+                <Label htmlFor="end-after" className="text-sm">
+                  After
+                </Label>
                 <Input
                   type="number"
                   min="1"
                   value={endAfterOccurrences}
-                  onChange={(e) => setEndAfterOccurrences(e.target.value)}
+                  onChange={(e: any) => setEndAfterOccurrences(e.target.value)}
                   className="w-20"
                 />
-                <span className="text-sm text-muted-foreground">occurrences</span>
+                <span className="text-sm text-muted-foreground">
+                  occurrences
+                </span>
               </div>
             </div>
           </div>
@@ -466,42 +534,42 @@ export function RecurringPicker({
 export function ReminderPicker({
   value = [],
   onChange,
-  className
+  className,
 }: ReminderPickerProps) {
   const [reminders, setReminders] = useState<any[]>(value);
 
   const commonReminders = [
-    { label: 'At time of task', value: 0 },
-    { label: '5 minutes before', value: 5 },
-    { label: '15 minutes before', value: 15 },
-    { label: '30 minutes before', value: 30 },
-    { label: '1 hour before', value: 60 },
-    { label: '2 hours before', value: 120 },
-    { label: '1 day before', value: 1440 },
-    { label: '2 days before', value: 2880 },
-    { label: '1 week before', value: 10080 },
+    { label: "At time of task", value: 0 },
+    { label: "5 minutes before", value: 5 },
+    { label: "15 minutes before", value: 15 },
+    { label: "30 minutes before", value: 30 },
+    { label: "1 hour before", value: 60 },
+    { label: "2 hours before", value: 120 },
+    { label: "1 day before", value: 1440 },
+    { label: "2 days before", value: 2880 },
+    { label: "1 week before", value: 10080 },
   ];
 
   const addReminder = (minutes: number) => {
     const newReminder = {
       id: Date.now(),
       minutesBeforeTask: minutes,
-      isEnabled: true
+      isEnabled: true,
     };
-    
+
     const updatedReminders = [...reminders, newReminder];
     setReminders(updatedReminders);
     onChange(updatedReminders);
   };
 
   const removeReminder = (id: number) => {
-    const updatedReminders = reminders.filter(r => r.id !== id);
+    const updatedReminders = reminders.filter((r) => r.id !== id);
     setReminders(updatedReminders);
     onChange(updatedReminders);
   };
 
   const toggleReminder = (id: number) => {
-    const updatedReminders = reminders.map(r => 
+    const updatedReminders = reminders.map((r) =>
       r.id === id ? { ...r, isEnabled: !r.isEnabled } : r
     );
     setReminders(updatedReminders);
@@ -509,14 +577,15 @@ export function ReminderPicker({
   };
 
   const formatReminderTime = (minutes: number) => {
-    if (minutes === 0) return 'At task time';
+    if (minutes === 0) return "At task time";
     if (minutes < 60) return `${minutes} min before`;
-    if (minutes < 1440) return `${minutes / 60} hour${minutes / 60 > 1 ? 's' : ''} before`;
-    return `${minutes / 1440} day${minutes / 1440 > 1 ? 's' : ''} before`;
+    if (minutes < 1440)
+      return `${minutes / 60} hour${minutes / 60 > 1 ? "s" : ""} before`;
+    return `${minutes / 1440} day${minutes / 1440 > 1 ? "s" : ""} before`;
   };
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn("space-y-4", className)}>
       <Label className="text-sm font-medium flex items-center gap-2">
         <Bell className="h-4 w-4" />
         Reminders
@@ -525,7 +594,7 @@ export function ReminderPicker({
       {/* Existing Reminders */}
       {reminders.length > 0 && (
         <div className="space-y-2">
-          {reminders.map(reminder => (
+          {reminders.map((reminder) => (
             <div key={reminder.id} className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -552,13 +621,15 @@ export function ReminderPicker({
       <div className="space-y-2">
         <Label className="text-sm">Add reminder</Label>
         <div className="grid grid-cols-2 gap-2">
-          {commonReminders.map(reminder => (
+          {commonReminders.map((reminder) => (
             <Button
               key={reminder.value}
               variant="outline"
               size="sm"
               onClick={() => addReminder(reminder.value)}
-              disabled={reminders.some(r => r.minutesBeforeTask === reminder.value)}
+              disabled={reminders.some(
+                (r) => r.minutesBeforeTask === reminder.value
+              )}
               className="justify-start text-xs"
             >
               <Plus className="h-3 w-3 mr-1" />

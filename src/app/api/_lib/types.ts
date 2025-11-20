@@ -1,23 +1,23 @@
 /**
  * API Types and Utilities for Daily Task Planner
- * 
+ *
  * Shared types and utilities used across all API routes
  */
 
-import type { NextRequest } from 'next/server';
-import type { 
-  ApiResponse, 
-  ApiError, 
-  TaskId, 
-  ListId, 
-  LabelId, 
-  UserId 
-} from '../../../types/utils';
+import type { NextRequest } from "next/server";
+import type {
+  ApiResponse,
+  ApiError,
+  TaskId,
+  ListId,
+  LabelId,
+  UserId,
+} from "../../../types/utils";
 import type {
   TaskWithDetails,
   ListWithTaskCount,
-  LabelWithTaskCount
-} from '../../../lib/db/types';
+  LabelWithTaskCount,
+} from "../../../lib/db/types";
 
 // =============================================================================
 // API CONTEXT AND REQUEST TYPES
@@ -28,7 +28,7 @@ import type {
  */
 export interface ApiContext {
   req: NextRequest;
-  userId: string;
+  userId: UserId;
   isAuthenticated: boolean;
   timestamp: string;
   requestId: string;
@@ -53,16 +53,7 @@ export interface PaginatedResponse<T> {
 /**
  * Standard API response wrapper
  */
-export type ApiResponse<T> = {
-  success: boolean;
-  data?: T;
-  error?: ApiError;
-  meta?: {
-    timestamp: string;
-    requestId: string;
-    version: string;
-  };
-};
+// Using imported ApiResponse type from utils
 
 /**
  * API route handler function signature
@@ -75,7 +66,7 @@ export type ApiHandler<T = any, P = any> = (
 /**
  * HTTP method types
  */
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 // =============================================================================
 // FILTER AND QUERY TYPES
@@ -101,7 +92,7 @@ export interface PaginationParams {
   page?: number;
   pageSize?: number;
   sortBy?: string;
-  sortDirection?: 'asc' | 'desc';
+  sortDirection?: "asc" | "desc";
 }
 
 /**
@@ -109,7 +100,7 @@ export interface PaginationParams {
  */
 export interface SortConfig {
   field: string;
-  direction: 'asc' | 'desc';
+  direction: "asc" | "desc";
 }
 
 // =============================================================================
@@ -120,7 +111,7 @@ export interface SortConfig {
  * Batch operation request
  */
 export interface BatchOperationRequest<T = any> {
-  operation: 'create' | 'update' | 'delete' | 'move' | 'status_change';
+  operation: "create" | "update" | "delete" | "move" | "status_change";
   entities: Array<T & { id?: string }>;
   options?: {
     continueOnError?: boolean;
@@ -156,8 +147,8 @@ export interface BatchOperationResult<T = any> {
  * Export request
  */
 export interface ExportRequest {
-  format: 'json' | 'csv' | 'pdf' | 'xlsx';
-  entities: Array<'tasks' | 'lists' | 'labels' | 'subtasks' | 'reminders'>;
+  format: "json" | "csv" | "pdf" | "xlsx";
+  entities: Array<"tasks" | "lists" | "labels" | "subtasks" | "reminders">;
   filters?: Record<string, any>;
   options?: {
     includeAttachments?: boolean;
@@ -176,7 +167,7 @@ export interface ExportRequest {
 export interface ExportJob {
   id: string;
   userId: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: "pending" | "processing" | "completed" | "failed";
   format: string;
   fileName?: string;
   downloadUrl?: string;
@@ -193,15 +184,15 @@ export interface ExportJob {
 /**
  * WebSocket message types
  */
-export type RealtimeMessageType = 
-  | 'task_created'
-  | 'task_updated' 
-  | 'task_deleted'
-  | 'task_status_changed'
-  | 'list_updated'
-  | 'label_updated'
-  | 'notification'
-  | 'user_presence';
+export type RealtimeMessageType =
+  | "task_created"
+  | "task_updated"
+  | "task_deleted"
+  | "task_status_changed"
+  | "list_updated"
+  | "label_updated"
+  | "notification"
+  | "user_presence";
 
 /**
  * Real-time message
@@ -220,7 +211,7 @@ export interface RealtimeMessage<T = any> {
 export interface TaskUpdateMessage {
   task: TaskWithDetails;
   changes?: Record<string, any>;
-  action: 'created' | 'updated' | 'deleted' | 'status_changed';
+  action: "created" | "updated" | "deleted" | "status_changed";
   userId: UserId;
 }
 
@@ -234,7 +225,7 @@ export interface TaskUpdateMessage {
 export interface SearchRequest {
   query: string;
   filters?: {
-    entityTypes?: Array<'task' | 'list' | 'label'>;
+    entityTypes?: Array<"task" | "list" | "label">;
     dateRange?: {
       start: string;
       end: string;
@@ -259,7 +250,7 @@ export interface SearchResult<T = any> {
   score: number;
   highlights?: Record<string, string[]>;
   snippet?: string;
-  matchType: 'exact' | 'fuzzy' | 'partial';
+  matchType: "exact" | "fuzzy" | "partial";
 }
 
 // =============================================================================
@@ -364,7 +355,7 @@ export interface UserContext {
   id: UserId;
   email?: string;
   name?: string;
-  role?: 'admin' | 'user' | 'guest';
+  role?: "admin" | "user" | "guest";
   permissions?: string[];
   preferences?: Record<string, any>;
 }
@@ -416,7 +407,12 @@ export interface AnalyticsData {
 /**
  * Notification types
  */
-export type NotificationType = 'reminder' | 'deadline' | 'overdue' | 'assignment' | 'system';
+export type NotificationType =
+  | "reminder"
+  | "deadline"
+  | "overdue"
+  | "assignment"
+  | "system";
 
 /**
  * Notification message

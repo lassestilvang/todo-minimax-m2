@@ -1,22 +1,23 @@
-'use client';
+"use client";
 
-import { useState, useRef, useCallback } from 'react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Plus, 
-  Star, 
+import { useState, useRef, useCallback } from "react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Plus,
+  Star,
   StarOff,
   MoreVertical,
   Edit,
   Trash2,
-  Inbox
-} from 'lucide-react';
-import { useLists } from '@/store/hooks';
-import { useViewTransition } from '@/hooks/use-view-transition';
-import { CreateListData } from '@/types/lists';
+  Inbox,
+} from "lucide-react";
+import { useViewTransition } from "@/hooks/use-view-transition";
+import { useListStore } from "@/store/list-store";
+import { CreateListData } from "@/types/lists";
+import type { ListId } from "@/types/utils";
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -24,131 +25,136 @@ interface SidebarProps {
   onViewChange?: (view: string) => void;
 }
 
-export function Sidebar({ collapsed = false, currentView, onViewChange }: SidebarProps) {
+export function Sidebar({
+  collapsed = false,
+  currentView,
+  onViewChange,
+}: SidebarProps) {
   const [showCreateList, setShowCreateList] = useState(false);
-  const [newListName, setNewListName] = useState('');
+  const [newListName, setNewListName] = useState("");
   const [isTransitioning, setIsTransitioning] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  
-  const { 
-    supportsViewTransition, 
-    withViewTransition, 
-    getTransitionNames, 
+
+  const {
+    supportsViewTransition,
+    withViewTransition,
+    getTransitionNames,
     applyTransitionStyles,
-    cleanupTransitionStyles 
   } = useViewTransition();
-  
-  const { 
-    lists, 
-    createList, 
-    updateList, 
-    deleteList, 
-    toggleFavorite 
-  } = useLists();
+
+  const listStore = useListStore();
+  const lists = listStore.lists;
+  const createList = listStore.createList;
+  const updateList = listStore.updateList;
+  const deleteList = listStore.deleteList;
+  const toggleFavorite = listStore.toggleFavorite;
 
   const handleCreateList = async () => {
     if (!newListName.trim()) return;
-    
+
     try {
       const performListCreation = async () => {
         await createList({
           name: newListName.trim(),
-          color: '#3B82F6', // Default blue
+          color: "#3B82F6",
+          emoji: "📋"
         });
       };
 
       if (supportsViewTransition) {
-        await withViewTransition(performListCreation);
+        withViewTransition(async () => performListCreation());
       } else {
         await performListCreation();
       }
-      
-      setNewListName('');
+
+      setNewListName("");
       setShowCreateList(false);
     } catch (error) {
-      console.error('Failed to create list:', error);
+      console.error("Failed to create list:", error);
     }
   };
 
-  const handleToggleFavorite = async (listId: string, isFavorite: boolean) => {
+  const handleToggleFavorite = (listId: string) => {
     try {
-      const performToggle = async () => {
-        await updateList({ id: listId, isFavorite: !isFavorite });
-      };
-
-      if (supportsViewTransition) {
-        await withViewTransition(performToggle);
-      } else {
-        await performToggle();
-      }
+      toggleFavorite(listId as ListId);
     } catch (error) {
-      console.error('Failed to update favorite status:', error);
+      console.error("Failed to update favorite status:", error);
     }
   };
 
   const handleDeleteList = async (listId: string) => {
-    if (confirm('Are you sure you want to delete this list?')) {
+    if (confirm("Are you sure you want to delete this list?")) {
       try {
         const performDelete = async () => {
-          await deleteList(listId);
+          await deleteList(listId as ListId);
         };
 
         if (supportsViewTransition) {
-          await withViewTransition(performDelete);
+          withViewTransition(async () => performDelete());
         } else {
           await performDelete();
         }
       } catch (error) {
-        console.error('Failed to delete list:', error);
+        console.error("Failed to delete list:", error);
       }
     }
   };
 
-  const handleListClick = useCallback((listName: string) => {
-    if (isTransitioning || !onViewChange) return;
-    
-    setIsTransitioning(true);
-    
-    const performListChange = () => {
-      const element = sidebarRef.current;
-      if (element) {
-        const transitionNames = getTransitionNames('list');
-        
-        if (supportsViewTransition) {
-          // Apply View Transition API styles
-          applyTransitionStyles(element, transitionNames.new, 'new');
-          
-          // Clean up after transition
-          setTimeout(() => {
-            if (element) {
-              cleanupTransitionStyles(element);
-            }
-            setIsTransitioning(false);
-          }, 200);
-        } else {
-          // Fallback for unsupported browsers
-          element.classList.add('view-list-transition');
-          setTimeout(() => {
-            if (element) {
-              element.classList.remove('view-list-transition');
-            }
-            setIsTransitioning(false);
-          }, 200);
+  const handleListClick = useCallback(
+    (listName: string) => {
+      if (isTransitioning || !onViewChange) return;
+
+      setIsTransitioning(true);
+
+      const performListChange = () => {
+        const element = sidebarRef.current;
+        if (element) {
+          const transitionNames = getTransitionNames("list");
+
+          if (supportsViewTransition) {
+            // Apply View Transition API styles
+            applyTransitionStyles(element, transitionNames.new, "new");
+
+            // Clean up after transition
+            setTimeout(() => {
+              if (element) {
+                // cleanup if needed
+              }
+              setIsTransitioning(false);
+            }, 200);
+          } else {
+            // Fallback for unsupported browsers
+            element.classList.add("view-list-transition");
+            setTimeout(() => {
+              if (element) {
+                element.classList.remove("view-list-transition");
+              }
+              setIsTransitioning(false);
+            }, 200);
+          }
         }
+
+        onViewChange(listName.toLowerCase().replace(" ", ""));
+      };
+
+      if (supportsViewTransition) {
+        withViewTransition(async () => performListChange());
+      } else {
+        performListChange();
       }
-      
-      onViewChange(listName.toLowerCase().replace(' ', ''));
-    };
-    
-    if (supportsViewTransition) {
-      withViewTransition(performListChange);
-    } else {
-      performListChange();
-    }
-  }, [isTransitioning, onViewChange, supportsViewTransition, withViewTransition, getTransitionNames, applyTransitionStyles, cleanupTransitionStyles]);
+    },
+    [
+      isTransitioning,
+      onViewChange,
+      supportsViewTransition,
+      withViewTransition,
+      getTransitionNames,
+      applyTransitionStyles,
+    ]
+  );
 
   return (
-    <div 
+    <div
       ref={sidebarRef}
       className={cn(
         "h-full flex flex-col view-sidebar view-list-transition",
@@ -160,11 +166,11 @@ export function Sidebar({ collapsed = false, currentView, onViewChange }: Sideba
         <Button
           variant="ghost"
           className={cn(
-            'w-full justify-start gap-2 h-9 transition-all duration-200',
-            collapsed && 'px-2',
-            currentView === 'today' && 'bg-primary/10 text-primary'
+            "w-full justify-start gap-2 h-9 transition-all duration-200",
+            collapsed && "px-2",
+            currentView === "today" && "bg-primary/10 text-primary"
           )}
-          onClick={() => onViewChange?.('today')}
+          onClick={() => onViewChange?.("today")}
         >
           <Inbox className="h-4 w-4" />
           {!collapsed && (
@@ -205,7 +211,7 @@ export function Sidebar({ collapsed = false, currentView, onViewChange }: Sideba
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
               className="w-full bg-transparent outline-none text-sm"
-              onKeyPress={(e) => e.key === 'Enter' && handleCreateList()}
+              onKeyPress={(e) => e.key === "Enter" && handleCreateList()}
               autoFocus
             />
             <div className="flex gap-1 mt-2">
@@ -221,7 +227,7 @@ export function Sidebar({ collapsed = false, currentView, onViewChange }: Sideba
                 variant="ghost"
                 onClick={() => {
                   setShowCreateList(false);
-                  setNewListName('');
+                  setNewListName("");
                 }}
               >
                 Cancel
@@ -232,7 +238,7 @@ export function Sidebar({ collapsed = false, currentView, onViewChange }: Sideba
 
         {/* List Items */}
         <div className="space-y-1">
-          {lists.map((list) => (
+          {lists.map((list: any) => (
             <div
               key={list.id}
               className="group relative flex items-center gap-2 list-item-transition"
@@ -240,23 +246,22 @@ export function Sidebar({ collapsed = false, currentView, onViewChange }: Sideba
               <Button
                 variant="ghost"
                 className={cn(
-                  'flex-1 justify-start gap-2 h-8 transition-all duration-200',
-                  collapsed && 'px-2',
-                  currentView === list.name.toLowerCase().replace(' ', '') && 'bg-primary/10'
+                  "flex-1 justify-start gap-2 h-8 transition-all duration-200",
+                  collapsed && "px-2",
+                  currentView === list.name.toLowerCase().replace(" ", "") &&
+                    "bg-primary/10"
                 )}
                 style={{ color: list.color }}
                 onClick={() => handleListClick(list.name)}
               >
-                <span className="text-sm">
-                  {list.emoji || '📋'}
-                </span>
+                <span className="text-sm">{list.emoji || "📋"}</span>
                 {!collapsed && (
                   <>
                     <span className="flex-1 text-left truncate">
                       {list.name}
                     </span>
-                    <Badge 
-                      variant="secondary" 
+                    <Badge
+                      variant="secondary"
                       className="text-xs h-5 min-w-[20px]"
                     >
                       0
@@ -272,7 +277,7 @@ export function Sidebar({ collapsed = false, currentView, onViewChange }: Sideba
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6"
-                    onClick={() => handleToggleFavorite(list.id, list.isFavorite)}
+                    onClick={() => handleToggleFavorite(list.id)}
                   >
                     {list.isFavorite ? (
                       <Star className="h-3 w-3 fill-current" />
@@ -280,13 +285,13 @@ export function Sidebar({ collapsed = false, currentView, onViewChange }: Sideba
                       <StarOff className="h-3 w-3" />
                     )}
                   </Button>
-                  
+
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6"
                     onClick={() => handleDeleteList(list.id)}
-                    disabled={list.name === 'Inbox'}
+                    disabled={list.name === "Inbox"}
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
@@ -322,7 +327,7 @@ export function Sidebar({ collapsed = false, currentView, onViewChange }: Sideba
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
               className="w-full border rounded px-3 py-2 mb-4 outline-none focus:ring-2 focus:ring-primary"
-              onKeyPress={(e) => e.key === 'Enter' && handleCreateList()}
+              onKeyPress={(e) => e.key === "Enter" && handleCreateList()}
               autoFocus
             />
             <div className="flex gap-2">
@@ -337,9 +342,8 @@ export function Sidebar({ collapsed = false, currentView, onViewChange }: Sideba
                 variant="ghost"
                 onClick={() => {
                   setShowCreateList(false);
-                  setNewListName('');
+                  setNewListName("");
                 }}
-                className="flex-1"
               >
                 Cancel
               </Button>

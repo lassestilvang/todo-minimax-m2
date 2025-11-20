@@ -1,10 +1,10 @@
 // Database Schema Definition for Daily Task Planner
 // SQLite with comprehensive table structure and relationships
 
-import type { DatabaseConfig } from './types';
+import type { DatabaseConfig } from "./types";
 
 // Schema version for migration tracking
-export const SCHEMA_VERSION = '1.0.0';
+export const SCHEMA_VERSION = "1.0.0";
 
 // Database initialization SQL
 export const INITIALIZE_DATABASE = `
@@ -45,6 +45,9 @@ CREATE TABLE IF NOT EXISTS lists (
   color TEXT NOT NULL DEFAULT '#3B82F6',
   emoji TEXT DEFAULT '📋',
   is_default INTEGER NOT NULL DEFAULT 0,
+  is_favorite INTEGER NOT NULL DEFAULT 0,
+  description TEXT,
+  position INTEGER NOT NULL DEFAULT 0,
   user_id TEXT NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -180,28 +183,28 @@ export const CREATE_INDEXES = [
   `CREATE INDEX IF NOT EXISTS idx_tasks_user_status ON tasks(user_id, status)`,
   `CREATE INDEX IF NOT EXISTS idx_tasks_user_list ON tasks(user_id, list_id)`,
   `CREATE INDEX IF NOT EXISTS idx_tasks_position ON tasks(list_id, position)`,
-  
+
   // Subtask indexes
   `CREATE INDEX IF NOT EXISTS idx_subtasks_task_id ON subtasks(task_id)`,
   `CREATE INDEX IF NOT EXISTS idx_subtasks_position ON subtasks(task_id, position)`,
-  
+
   // Reminder indexes
   `CREATE INDEX IF NOT EXISTS idx_reminders_task_id ON reminders(task_id)`,
   `CREATE INDEX IF NOT EXISTS idx_reminders_remind_at ON reminders(remind_at)`,
   `CREATE INDEX IF NOT EXISTS idx_reminders_is_sent ON reminders(is_sent)`,
-  
+
   // Task History indexes
   `CREATE INDEX IF NOT EXISTS idx_task_history_task_id ON task_history(task_id)`,
   `CREATE INDEX IF NOT EXISTS idx_task_history_created_at ON task_history(created_at)`,
   `CREATE INDEX IF NOT EXISTS idx_task_history_action ON task_history(action)`,
-  
+
   // Attachment indexes
   `CREATE INDEX IF NOT EXISTS idx_attachments_task_id ON attachments(task_id)`,
   `CREATE INDEX IF NOT EXISTS idx_attachments_uploaded_at ON attachments(uploaded_at)`,
-  
+
   // Label indexes
   `CREATE INDEX IF NOT EXISTS idx_labels_user_id ON labels(user_id)`,
-  
+
   // List indexes
   `CREATE INDEX IF NOT EXISTS idx_lists_user_id ON lists(user_id)`,
   `CREATE INDEX IF NOT EXISTS idx_lists_is_default ON lists(is_default)`,
@@ -229,7 +232,7 @@ ${CREATE_ATTACHMENTS_TABLE}
 `;
 
 // Create all indexes
-export const CREATE_ALL_INDEXES = CREATE_INDEXES.join('\n');
+export const CREATE_ALL_INDEXES = CREATE_INDEXES.join("\n");
 
 // Complete schema setup
 export const COMPLETE_SCHEMA = `
@@ -246,14 +249,14 @@ export const INSERT_DEFAULT_DATA = `
 -- Insert default labels if needed (handled in application logic)
 
 -- Create a default user (this should be handled by the application)
--- INSERT OR IGNORE INTO users (id, name, email) 
+-- INSERT OR IGNORE INTO users (id, name, email)
 -- VALUES ('default_user', 'Default User', 'default@example.com');
 `;
 
 // Database triggers for updated_at timestamp
 export const CREATE_TRIGGERS = `
 -- Trigger to update updated_at timestamp for users
-CREATE TRIGGER IF NOT EXISTS update_users_updated_at 
+CREATE TRIGGER IF NOT EXISTS update_users_updated_at
   AFTER UPDATE ON users
   FOR EACH ROW
   BEGIN
@@ -261,7 +264,7 @@ CREATE TRIGGER IF NOT EXISTS update_users_updated_at
   END;
 
 -- Trigger to update updated_at timestamp for lists
-CREATE TRIGGER IF NOT EXISTS update_lists_updated_at 
+CREATE TRIGGER IF NOT EXISTS update_lists_updated_at
   AFTER UPDATE ON lists
   FOR EACH ROW
   BEGIN
@@ -269,7 +272,7 @@ CREATE TRIGGER IF NOT EXISTS update_lists_updated_at
   END;
 
 -- Trigger to update updated_at timestamp for labels
-CREATE TRIGGER IF NOT EXISTS update_labels_updated_at 
+CREATE TRIGGER IF NOT EXISTS update_labels_updated_at
   AFTER UPDATE ON labels
   FOR EACH ROW
   BEGIN
@@ -277,7 +280,7 @@ CREATE TRIGGER IF NOT EXISTS update_labels_updated_at
   END;
 
 -- Trigger to update updated_at timestamp for tasks
-CREATE TRIGGER IF NOT EXISTS update_tasks_updated_at 
+CREATE TRIGGER IF NOT EXISTS update_tasks_updated_at
   AFTER UPDATE ON tasks
   FOR EACH ROW
   BEGIN
@@ -285,7 +288,7 @@ CREATE TRIGGER IF NOT EXISTS update_tasks_updated_at
   END;
 
 -- Trigger to update updated_at timestamp for subtasks
-CREATE TRIGGER IF NOT EXISTS update_subtasks_updated_at 
+CREATE TRIGGER IF NOT EXISTS update_subtasks_updated_at
   AFTER UPDATE ON subtasks
   FOR EACH ROW
   BEGIN
@@ -293,7 +296,7 @@ CREATE TRIGGER IF NOT EXISTS update_subtasks_updated_at
   END;
 
 -- Trigger to update updated_at timestamp for reminders
-CREATE TRIGGER IF NOT EXISTS update_reminders_updated_at 
+CREATE TRIGGER IF NOT EXISTS update_reminders_updated_at
   AFTER UPDATE ON reminders
   FOR EACH ROW
   BEGIN
@@ -327,30 +330,30 @@ ${CREATE_TRIGGERS}
 // Schema validation queries
 export const VALIDATION_QUERIES = {
   checkTablesExist: `
-    SELECT name FROM sqlite_master 
-    WHERE type='table' 
+    SELECT name FROM sqlite_master
+    WHERE type='table'
     AND name IN ('users', 'lists', 'tasks', 'labels', 'subtasks', 'reminders', 'task_history', 'attachments')
     ORDER BY name;
   `,
-  
+
   checkIndexesExist: `
-    SELECT name FROM sqlite_master 
-    WHERE type='index' 
+    SELECT name FROM sqlite_master
+    WHERE type='index'
     AND tbl_name IN ('tasks', 'subtasks', 'reminders', 'task_history', 'attachments')
     ORDER BY tbl_name, name;
   `,
-  
+
   checkTriggersExist: `
-    SELECT name FROM sqlite_master 
+    SELECT name FROM sqlite_master
     WHERE type='trigger'
     ORDER BY name;
   `,
-  
+
   getTableSchema: (tableName: string) => `
-    SELECT sql FROM sqlite_master 
+    SELECT sql FROM sqlite_master
     WHERE type='table' AND name='${tableName}';
   `,
-  
+
   getTableCount: (tableName: string) => `
     SELECT COUNT(*) as count FROM ${tableName};
   `,
@@ -366,8 +369,8 @@ export interface Migration {
 
 export const MIGRATIONS: Migration[] = [
   {
-    id: '001_initial_schema',
-    name: 'Create initial database schema',
+    id: "001_initial_schema",
+    name: "Create initial database schema",
     sql: COMPLETE_SCHEMA_WITH_TRIGGERS,
     timestamp: new Date(),
   },
@@ -375,7 +378,7 @@ export const MIGRATIONS: Migration[] = [
 
 // Database configuration defaults
 export const DEFAULT_DATABASE_CONFIG: DatabaseConfig = {
-  path: './data/tasks.db',
+  path: "./data/tasks.db",
   timeout: 10000,
   verbose: false,
   WAL: true,
@@ -384,37 +387,139 @@ export const DEFAULT_DATABASE_CONFIG: DatabaseConfig = {
   backupInterval: 24 * 60 * 60 * 1000, // 24 hours
 };
 
+// Export createListSchema for compatibility
+export const createListSchema = {
+  name: "string",
+  color: "string",
+  emoji: "string",
+  is_default: "boolean",
+  user_id: "string",
+};
+
+// Export createTaskSchema for compatibility
+export const createTaskSchema = {
+  title: "string",
+  description: "string",
+  status: "string",
+  priority: "string",
+  list_id: "string",
+  user_id: "string",
+  due_date: "string",
+  estimated_duration: "number",
+  actual_duration: "number",
+  position: "number",
+};
+
 // Utility functions for schema operations
 export class SchemaUtils {
   static validateTableName(tableName: string): boolean {
     const validTables = [
-      'users', 'lists', 'tasks', 'labels', 'task_labels',
-      'subtasks', 'reminders', 'task_history', 'attachments'
+      "users",
+      "lists",
+      "tasks",
+      "labels",
+      "task_labels",
+      "subtasks",
+      "reminders",
+      "task_history",
+      "attachments",
     ];
     return validTables.includes(tableName);
   }
 
   static sanitizeTableName(tableName: string): string {
-    return tableName.replace(/[^a-zA-Z0-9_]/g, '');
+    return tableName.replace(/[^a-zA-Z0-9_]/g, "");
   }
 
   static getTableColumns(tableName: string): string[] {
     const columnsMap: Record<string, string[]> = {
-      users: ['id', 'name', 'email', 'avatar', 'preferences', 'created_at', 'updated_at'],
-      lists: ['id', 'name', 'color', 'emoji', 'is_default', 'user_id', 'created_at', 'updated_at'],
-      tasks: [
-        'id', 'name', 'description', 'date', 'deadline', 'estimate', 'actual_time',
-        'priority', 'status', 'user_id', 'list_id', 'parent_task_id', 'position',
-        'is_recurring', 'recurring_pattern', 'created_at', 'updated_at'
+      users: [
+        "id",
+        "name",
+        "email",
+        "avatar",
+        "preferences",
+        "created_at",
+        "updated_at",
       ],
-      labels: ['id', 'name', 'icon', 'color', 'user_id', 'created_at', 'updated_at'],
-      task_labels: ['task_id', 'label_id', 'created_at'],
-      subtasks: ['id', 'name', 'is_completed', 'task_id', 'position', 'created_at', 'updated_at'],
-      reminders: ['id', 'task_id', 'remind_at', 'is_sent', 'method', 'created_at', 'updated_at'],
-      task_history: ['id', 'task_id', 'action', 'changed_by', 'changes', 'description', 'created_at'],
-      attachments: ['id', 'task_id', 'filename', 'original_name', 'mime_type', 'size', 'path', 'uploaded_at'],
+      lists: [
+        "id",
+        "name",
+        "color",
+        "emoji",
+        "is_default",
+        "user_id",
+        "created_at",
+        "updated_at",
+      ],
+      tasks: [
+        "id",
+        "name",
+        "description",
+        "date",
+        "deadline",
+        "estimate",
+        "actual_time",
+        "priority",
+        "status",
+        "user_id",
+        "list_id",
+        "parent_task_id",
+        "position",
+        "is_recurring",
+        "recurring_pattern",
+        "created_at",
+        "updated_at",
+      ],
+      labels: [
+        "id",
+        "name",
+        "icon",
+        "color",
+        "user_id",
+        "created_at",
+        "updated_at",
+      ],
+      task_labels: ["task_id", "label_id", "created_at"],
+      subtasks: [
+        "id",
+        "name",
+        "is_completed",
+        "task_id",
+        "position",
+        "created_at",
+        "updated_at",
+      ],
+      reminders: [
+        "id",
+        "task_id",
+        "remind_at",
+        "is_sent",
+        "method",
+        "created_at",
+        "updated_at",
+      ],
+      task_history: [
+        "id",
+        "task_id",
+        "action",
+        "changed_by",
+        "changes",
+        "description",
+        "created_at",
+      ],
+      attachments: [
+        "id",
+        "task_id",
+        "filename",
+        "original_name",
+        "mime_type",
+        "size",
+        "path",
+        "uploaded_at",
+      ],
     };
-    
+
     return columnsMap[tableName] || [];
   }
 }

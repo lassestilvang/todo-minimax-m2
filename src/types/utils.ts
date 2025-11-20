@@ -1,22 +1,22 @@
 /**
  * Utility Types and Helpers for Daily Task Planner Application
- * 
+ *
  * This module provides foundational utility types that are used across the application.
  * These types extend and enhance the database types with application-specific functionality.
  */
 
-import type { 
-  Task, 
-  List, 
-  Label, 
-  User, 
-  Priority, 
+import type {
+  Task,
+  List,
+  Label,
+  User,
+  Priority,
   TaskStatus,
   BaseEntity,
   TaskWithDetails,
   ListWithTaskCount,
-  RecurringPattern 
-} from '../lib/db/types';
+  RecurringPattern,
+} from "../lib/db/types";
 
 // =============================================================================
 // CORE UTILITY TYPES
@@ -41,6 +41,8 @@ export interface ResponseMetadata {
   pageSize?: number;
   hasMore?: boolean;
   timestamp: string;
+  requestId?: string;
+  version?: string;
 }
 
 /**
@@ -51,12 +53,13 @@ export interface ApiError {
   message: string;
   details?: Record<string, any>;
   field?: string; // For validation errors
+  timestamp?: string;
 }
 
 /**
  * Loading state types for components
  */
-export type LoadingState = 'idle' | 'loading' | 'success' | 'error';
+export type LoadingState = "idle" | "loading" | "success" | "error";
 
 /**
  * Generic state interface for components
@@ -74,7 +77,7 @@ export interface PaginationParams {
   page?: number;
   pageSize?: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 // =============================================================================
@@ -94,18 +97,18 @@ export type Brand<K, T extends string> = K & { readonly brand: T };
 /**
  * Specific branded ID types for better type safety
  */
-export type TaskId = Brand<string, 'TaskId'>;
-export type ListId = Brand<string, 'ListId'>;
-export type LabelId = Brand<string, 'LabelId'>;
-export type UserId = Brand<string, 'UserId'>;
-export type SubtaskId = Brand<string, 'SubtaskId'>;
-export type ReminderId = Brand<string, 'ReminderId'>;
+export type TaskId = Brand<string, "TaskId">;
+export type ListId = Brand<string, "ListId">;
+export type LabelId = Brand<string, "LabelId">;
+export type UserId = Brand<string, "UserId">;
+export type SubtaskId = Brand<string, "SubtaskId">;
+export type ReminderId = Brand<string, "ReminderId">;
 
 /**
  * Type guard for checking if a value is a valid EntityId
  */
 export function isEntityId(value: any): value is EntityId {
-  return typeof value === 'string' && value.length > 0;
+  return typeof value === "string" && value.length > 0;
 }
 
 // =============================================================================
@@ -133,7 +136,13 @@ export interface TimeTracking {
 /**
  * Period types for recurring tasks and views
  */
-export type TimePeriod = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
+export type TimePeriod =
+  | "today"
+  | "week"
+  | "month"
+  | "quarter"
+  | "year"
+  | "custom";
 
 export interface TimePeriodConfig {
   period: TimePeriod;
@@ -162,7 +171,7 @@ export interface BaseFilter {
  */
 export interface SortConfig {
   field: string;
-  direction: 'asc' | 'desc';
+  direction: "asc" | "desc";
 }
 
 /**
@@ -186,10 +195,10 @@ export interface AdvancedFilter<T = any> extends BaseFilter {
 export function isTask(value: any): value is Task {
   return (
     value &&
-    typeof value === 'object' &&
-    typeof value.id === 'string' &&
-    typeof value.name === 'string' &&
-    ['todo', 'in_progress', 'done', 'archived'].includes(value.status)
+    typeof value === "object" &&
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    ["todo", "in_progress", "done", "archived"].includes(value.status)
   );
 }
 
@@ -199,9 +208,9 @@ export function isTask(value: any): value is Task {
 export function isList(value: any): value is List {
   return (
     value &&
-    typeof value === 'object' &&
-    typeof value.id === 'string' &&
-    typeof value.name === 'string'
+    typeof value === "object" &&
+    typeof value.id === "string" &&
+    typeof value.name === "string"
   );
 }
 
@@ -211,9 +220,9 @@ export function isList(value: any): value is List {
 export function isLabel(value: any): value is Label {
   return (
     value &&
-    typeof value === 'object' &&
-    typeof value.id === 'string' &&
-    typeof value.name === 'string'
+    typeof value === "object" &&
+    typeof value.id === "string" &&
+    typeof value.name === "string"
   );
 }
 
@@ -224,7 +233,7 @@ export function isLabel(value: any): value is Label {
 /**
  * Result type for operations that can succeed or fail
  */
-export type Result<T, E = string> = 
+export type Result<T, E = string> =
   | { success: true; data: T }
   | { success: false; error: E };
 
@@ -234,37 +243,37 @@ export type Result<T, E = string> =
 export type Option<T> = Some<T> | None;
 
 export interface Some<T> {
-  readonly type: 'some';
+  readonly type: "some";
   readonly value: T;
 }
 
 export interface None {
-  readonly type: 'none';
+  readonly type: "none";
 }
 
 /**
  * Helper to create Some<T>
  */
 export function some<T>(value: T): Some<T> {
-  return { type: 'some', value };
+  return { type: "some", value };
 }
 
 /**
  * Helper to create None
  */
 export function none(): None {
-  return { type: 'none' };
+  return { type: "none" };
 }
 
 /**
  * Type guard for Option<T>
  */
 export function isSome<T>(option: Option<T>): option is Some<T> {
-  return option.type === 'some';
+  return option.type === "some";
 }
 
 export function isNone<T>(option: Option<T>): option is None {
-  return option.type === 'none';
+  return option.type === "none";
 }
 
 // =============================================================================
@@ -274,24 +283,42 @@ export function isNone<T>(option: Option<T>): option is None {
 /**
  * Strict union types for application-specific values
  */
-export type ViewType = 'today' | 'next7days' | 'upcoming' | 'all' | 'completed' | 'archived';
+export type ViewType =
+  | "today"
+  | "next7"
+  | "upcoming"
+  | "all"
+  | "completed"
+  | "archived";
 
-export type ListViewType = 'grid' | 'list' | 'kanban';
+export type ListViewType = "grid" | "list" | "kanban";
 
-export type NotificationType = 'reminder' | 'deadline' | 'overdue' | 'recurring' | 'assignment';
+export type NotificationType =
+  | "reminder"
+  | "deadline"
+  | "overdue"
+  | "recurring"
+  | "assignment";
 
-export type Theme = 'light' | 'dark' | 'system';
+export type Theme = "light" | "dark" | "system";
 
-export type SortField = 'name' | 'dueDate' | 'priority' | 'status' | 'created' | 'updated' | 'list';
+export type SortField =
+  | "name"
+  | "dueDate"
+  | "priority"
+  | "status"
+  | "created"
+  | "updated"
+  | "list";
 
 /**
  * Priority ordering for consistent sorting and filtering
  */
 export const PriorityOrder: Record<Priority, number> = {
-  'High': 1,
-  'Medium': 2,
-  'Low': 3,
-  'None': 4
+  High: 1,
+  Medium: 2,
+  Low: 3,
+  None: 4,
 };
 
 // =============================================================================
@@ -305,7 +332,7 @@ export interface AppConfig {
   theme: Theme;
   timezone: string;
   dateFormat: string;
-  timeFormat: '12h' | '24h';
+  timeFormat: "12h" | "24h";
   language: string;
   autoSave: boolean;
   notifications: {
@@ -334,7 +361,7 @@ export type EventHandler<T = any> = (event: T) => void | Promise<void>;
 /**
  * CRUD operation types for entities
  */
-export type CrudOperation = 'create' | 'read' | 'update' | 'delete';
+export type CrudOperation = "create" | "read" | "update" | "delete";
 
 export interface EntityEvent<T = any> {
   entity: T;
@@ -350,7 +377,7 @@ export interface EntityEvent<T = any> {
 /**
  * Extended task with application-specific properties
  */
-export interface AppTask extends Omit<Task, 'id' | 'userId' | 'listId'> {
+export interface AppTask extends Omit<Task, "id" | "userId" | "listId"> {
   id: TaskId;
   userId: UserId;
   listId: ListId;
@@ -365,7 +392,7 @@ export interface AppTask extends Omit<Task, 'id' | 'userId' | 'listId'> {
 /**
  * Extended list with application-specific properties
  */
-export interface AppList extends Omit<List, 'id' | 'userId'> {
+export interface AppList extends Omit<List, "id" | "userId"> {
   id: ListId;
   userId: UserId;
   // Additional application-specific properties
@@ -382,11 +409,11 @@ export interface AppList extends Omit<List, 'id' | 'userId'> {
 export interface ListSettings {
   defaultView: ListViewType;
   sortBy: SortField;
-  sortDirection: 'asc' | 'desc';
+  sortDirection: "asc" | "desc";
   autoRefresh: boolean;
   showCompleted: boolean;
   showSubtasks: boolean;
-  groupBy?: 'priority' | 'status' | 'dueDate' | 'none';
+  groupBy?: "priority" | "status" | "dueDate" | "none";
 }
 
 /**
@@ -428,10 +455,20 @@ export interface Persistable<T = any> {
  * Local storage keys and structure
  */
 export interface LocalStorageSchema {
-  'app:config': AppConfig;
-  'app:theme': Theme;
-  'app:last-view': ViewType;
-  'app:filters': Record<string, any>;
-  'ui:sidebar-collapsed': boolean;
-  'ui:list-layout': ListViewType;
+  "app:config": AppConfig;
+  "app:theme": Theme;
+  "app:last-view": ViewType;
+  "app:filters": Record<string, any>;
+  "ui:sidebar-collapsed": boolean;
+  "ui:list-layout": ListViewType;
 }
+
+// Re-export types from database for convenience
+export type {
+  Priority,
+  TaskStatus,
+  BaseEntity,
+  TaskWithDetails,
+  ListWithTaskCount,
+  RecurringPattern,
+} from "../lib/db/types";

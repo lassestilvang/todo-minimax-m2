@@ -47,7 +47,7 @@ describe('Core Utility Functions', () => {
     test('should merge tailwind classes correctly', () => {
       // This tests the integration with tailwind-merge
       const result = cn('p-4', 'p-2', 'mx-2', 'mx-4');
-      expect(result).toBe('p-4 p-2 mx-2 mx-4'); // tailwind-merge would handle this differently
+      expect(result).toBe('p-2 mx-4'); // tailwind-merge merges conflicting classes
     });
 
     test('should handle arrays', () => {

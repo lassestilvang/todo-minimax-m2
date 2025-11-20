@@ -3,11 +3,31 @@
  * Tests database integration, store interactions, and overall functionality
  */
 
-import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import { createTestDatabaseAPI, TestDatabaseManager } from '../lib/db/test-utils';
-import { createTaskStore, createListStore, createAppStore, initializeStores } from '../store/index';
-import type { CreateTaskData, CreateListData, UpdateTaskData } from '../types/tasks';
-import type { TaskId, ListId } from '../types/utils';
+import {
+  describe,
+  test,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+} from "vitest";
+import {
+  createTestDatabaseAPI,
+  TestDatabaseManager,
+} from "../../lib/db/test-utils";
+import {
+  createTaskStore,
+  createListStore,
+  createAppStore,
+  initializeStores,
+} from "../index";
+import type {
+  CreateTaskData,
+  CreateListData,
+  UpdateTaskData,
+} from "../../types/tasks";
+import type { TaskId, ListId } from "../../types/utils";
 
 /**
  * Test database setup
@@ -17,10 +37,10 @@ let testAPI: any;
 
 beforeAll(async () => {
   testDB = new TestDatabaseManager({
-    path: ':memory:', // Use in-memory database for testing
-    verbose: false
+    path: ":memory:", // Use in-memory database for testing
+    verbose: false,
   });
-  
+
   testAPI = createTestDatabaseAPI();
   await testAPI.testManager.setupTestDatabase();
 });
@@ -31,7 +51,7 @@ afterAll(async () => {
   }
 });
 
-describe('Zustand Store Integration Tests', () => {
+describe("Zustand Store Integration Tests", () => {
   let taskStore: any;
   let listStore: any;
   let appStore: any;
@@ -39,23 +59,23 @@ describe('Zustand Store Integration Tests', () => {
   beforeEach(() => {
     // Create fresh stores for each test
     taskStore = createTaskStore({
-      userId: 'test-user',
+      userId: "test-user",
       errorHandling: true,
       persistence: false, // Disable persistence for tests
-      devtools: false
+      devtools: false,
     });
 
     listStore = createListStore({
-      userId: 'test-user',
+      userId: "test-user",
       errorHandling: true,
       persistence: false,
-      devtools: false
+      devtools: false,
     });
 
     appStore = createAppStore({
       errorHandling: true,
       persistence: false,
-      devtools: false
+      devtools: false,
     });
   });
 
@@ -66,32 +86,32 @@ describe('Zustand Store Integration Tests', () => {
     appStore.clearError();
   });
 
-  describe('TaskStore Integration', () => {
-    test('should create and manage tasks with database', async () => {
+  describe("TaskStore Integration", () => {
+    test("should create and manage tasks with database", async () => {
       // First, create a test list
       const listData: CreateListData = {
-        name: 'Test List',
-        color: '#3B82F6',
-        emoji: '📋',
-        isDefault: false
+        name: "Test List",
+        color: "#3B82F6",
+        emoji: "📋",
+        isDefault: false,
       };
 
       const createdList = await listStore.createList(listData);
       expect(createdList).toBeDefined();
-      expect(createdList.name).toBe('Test List');
+      expect(createdList.name).toBe("Test List");
 
       // Create a task
       const taskData: CreateTaskData = {
-        name: 'Test Task',
-        description: 'Test Description',
-        priority: 'High',
-        status: 'todo',
-        listId: createdList.id
+        name: "Test Task",
+        description: "Test Description",
+        priority: "High",
+        status: "todo",
+        listId: createdList.id,
       };
 
       const createdTask = await taskStore.createTask(taskData);
       expect(createdTask).toBeDefined();
-      expect(createdTask.name).toBe('Test Task');
+      expect(createdTask.name).toBe("Test Task");
       expect(createdTask.listId).toBe(createdList.id);
 
       // Verify task is in cache
@@ -100,16 +120,16 @@ describe('Zustand Store Integration Tests', () => {
       // Update the task
       const updateData: UpdateTaskData = {
         id: createdTask.id,
-        name: 'Updated Test Task',
-        status: 'in_progress'
+        name: "Updated Test Task",
+        status: "in_progress",
       };
 
       const updatedTask = await taskStore.updateTask(updateData);
-      expect(updatedTask.name).toBe('Updated Test Task');
-      expect(updatedTask.status).toBe('in_progress');
+      expect(updatedTask.name).toBe("Updated Test Task");
+      expect(updatedTask.status).toBe("in_progress");
 
       // Test task filtering
-      taskStore.addStatusFilter('in_progress');
+      taskStore.addStatusFilter("in_progress");
       const filteredTasks = taskStore.getFilteredTasks();
       expect(filteredTasks).toHaveLength(1);
       expect(filteredTasks[0].id).toBe(createdTask.id);
@@ -120,26 +140,44 @@ describe('Zustand Store Integration Tests', () => {
       expect(deletedTask).toBeUndefined();
     });
 
-    test('should handle batch operations', async () => {
+    test("should handle batch operations", async () => {
       // Create multiple tasks
       const tasks: CreateTaskData[] = [
-        { name: 'Task 1', description: 'Desc 1', priority: 'High', status: 'todo', listId: 'test-list' },
-        { name: 'Task 2', description: 'Desc 2', priority: 'Medium', status: 'todo', listId: 'test-list' },
-        { name: 'Task 3', description: 'Desc 3', priority: 'Low', status: 'todo', listId: 'test-list' }
+        {
+          name: "Task 1",
+          description: "Desc 1",
+          priority: "High",
+          status: "todo",
+          listId: "test-list",
+        },
+        {
+          name: "Task 2",
+          description: "Desc 2",
+          priority: "Medium",
+          status: "todo",
+          listId: "test-list",
+        },
+        {
+          name: "Task 3",
+          description: "Desc 3",
+          priority: "Low",
+          status: "todo",
+          listId: "test-list",
+        },
       ];
 
       const createdTasks = await Promise.all(
-        tasks.map(task => taskStore.createTask(task))
+        tasks.map((task) => taskStore.createTask(task))
       );
 
       expect(createdTasks).toHaveLength(3);
 
       // Test batch update
-      const taskIds = createdTasks.map(task => task.id);
+      const taskIds = createdTasks.map((task) => task.id);
       const batchUpdateData: Partial<UpdateTaskData> & { taskIds: TaskId[] } = {
         taskIds,
-        status: 'done',
-        priority: 'High'
+        status: "done",
+        priority: "High",
       };
 
       const batchResult = await taskStore.batchUpdateTasks(batchUpdateData);
@@ -148,10 +186,10 @@ describe('Zustand Store Integration Tests', () => {
       expect(batchResult.failed).toBe(0);
 
       // Verify all tasks are updated
-      const updatedTasks = createdTasks.map(task => taskStore.cache[task.id]);
-      updatedTasks.forEach(task => {
-        expect(task.status).toBe('done');
-        expect(task.priority).toBe('High');
+      const updatedTasks = createdTasks.map((task) => taskStore.cache[task.id]);
+      updatedTasks.forEach((task) => {
+        expect(task.status).toBe("done");
+        expect(task.priority).toBe("High");
       });
 
       // Test batch delete
@@ -160,22 +198,22 @@ describe('Zustand Store Integration Tests', () => {
       expect(deleteResult.successful).toBe(3);
     });
 
-    test('should handle optimistic updates with rollback', async () => {
+    test("should handle optimistic updates with rollback", async () => {
       const taskData: CreateTaskData = {
-        name: 'Optimistic Test Task',
-        description: 'Optimistic Test',
-        priority: 'High',
-        status: 'todo',
-        listId: 'test-list'
+        name: "Optimistic Test Task",
+        description: "Optimistic Test",
+        priority: "High",
+        status: "todo",
+        listId: "test-list",
       };
 
       // Create task with optimistic update
       const createdTask = await taskStore.createTask(taskData);
-      expect(createdTask.name).toBe('Optimistic Test Task');
+      expect(createdTask.name).toBe("Optimistic Test Task");
 
       // Verify it's in the list immediately (optimistic)
       const tasks = taskStore.getTasks();
-      expect(tasks.find(t => t.id === createdTask.id)).toBeDefined();
+      expect(tasks.find((t) => t.id === createdTask.id)).toBeDefined();
 
       // Test selection functionality
       taskStore.selectTask(createdTask.id);
@@ -189,19 +227,19 @@ describe('Zustand Store Integration Tests', () => {
     });
   });
 
-  describe('ListStore Integration', () => {
-    test('should create and manage lists', async () => {
+  describe("ListStore Integration", () => {
+    test("should create and manage lists", async () => {
       const listData: CreateListData = {
-        name: 'Integration Test List',
-        color: '#10B981',
-        emoji: '✅',
-        isDefault: false
+        name: "Integration Test List",
+        color: "#10B981",
+        emoji: "✅",
+        isDefault: false,
       };
 
       const createdList = await listStore.createList(listData);
       expect(createdList).toBeDefined();
-      expect(createdList.name).toBe('Integration Test List');
-      expect(createdList.color).toBe('#10B981');
+      expect(createdList.name).toBe("Integration Test List");
+      expect(createdList.color).toBe("#10B981");
 
       // Test list selection
       listStore.selectList(createdList.id);
@@ -220,20 +258,28 @@ describe('Zustand Store Integration Tests', () => {
       expect(recentLists).toHaveLength(1);
 
       // Update list
-      const updateData = { ...createdList, name: 'Updated Integration Test List' };
+      const updateData = {
+        ...createdList,
+        name: "Updated Integration Test List",
+      };
       const updatedList = await listStore.updateList(updateData);
-      expect(updatedList.name).toBe('Updated Integration Test List');
+      expect(updatedList.name).toBe("Updated Integration Test List");
     });
 
-    test('should handle list navigation', async () => {
+    test("should handle list navigation", async () => {
       const lists: CreateListData[] = [
-        { name: 'First List', color: '#3B82F6', emoji: '1️⃣', isDefault: false },
-        { name: 'Second List', color: '#10B981', emoji: '2️⃣', isDefault: false },
-        { name: 'Third List', color: '#F59E0B', emoji: '3️⃣', isDefault: false }
+        { name: "First List", color: "#3B82F6", emoji: "1️⃣", isDefault: false },
+        {
+          name: "Second List",
+          color: "#10B981",
+          emoji: "2️⃣",
+          isDefault: false,
+        },
+        { name: "Third List", color: "#F59E0B", emoji: "3️⃣", isDefault: false },
       ];
 
       const createdLists = await Promise.all(
-        lists.map(list => listStore.createList(list))
+        lists.map((list) => listStore.createList(list))
       );
 
       // Test switching between lists
@@ -256,39 +302,39 @@ describe('Zustand Store Integration Tests', () => {
     });
   });
 
-  describe('AppStore Integration', () => {
-    test('should manage global application state', async () => {
+  describe("AppStore Integration", () => {
+    test("should manage global application state", async () => {
       // Test authentication simulation
       const loginResult = await appStore.login({
-        email: 'test@example.com',
-        password: 'testpassword'
+        email: "test@example.com",
+        password: "testpassword",
       });
-      
+
       expect(appStore.isAuthenticated).toBe(true);
       expect(appStore.user).toBeDefined();
 
       // Test theme management
-      appStore.setTheme('dark');
-      expect(appStore.theme).toBe('dark');
+      appStore.setTheme("dark");
+      expect(appStore.theme).toBe("dark");
 
-      appStore.setTheme('light');
-      expect(appStore.theme).toBe('light');
+      appStore.setTheme("light");
+      expect(appStore.theme).toBe("light");
 
       // Test view management
-      appStore.setCurrentView('tasks');
-      expect(appStore.currentView).toBe('tasks');
+      appStore.setCurrentView("tasks");
+      expect(appStore.currentView).toBe("tasks");
 
       // Test preferences
       appStore.updatePreferences({
         compactMode: true,
-        showCompletedTasks: false
+        showCompletedTasks: false,
       });
-      
+
       expect(appStore.preferences.compactMode).toBe(true);
       expect(appStore.preferences.showCompletedTasks).toBe(false);
 
       // Test error handling
-      appStore.setError({ code: 'TEST_ERROR', message: 'Test error' });
+      appStore.setError({ code: "TEST_ERROR", message: "Test error" });
       expect(appStore.error).toBeDefined();
 
       appStore.clearError();
@@ -296,14 +342,14 @@ describe('Zustand Store Integration Tests', () => {
     });
   });
 
-  describe('Store Interaction Tests', () => {
-    test('should handle cross-store interactions', async () => {
+  describe("Store Interaction Tests", () => {
+    test("should handle cross-store interactions", async () => {
       // Create a list first
       const listData: CreateListData = {
-        name: 'Cross-Store Test List',
-        color: '#8B5CF6',
-        emoji: '🔗',
-        isDefault: false
+        name: "Cross-Store Test List",
+        color: "#8B5CF6",
+        emoji: "🔗",
+        isDefault: false,
       };
 
       const createdList = await listStore.createList(listData);
@@ -311,11 +357,11 @@ describe('Zustand Store Integration Tests', () => {
 
       // Create tasks in that list
       const taskData: CreateTaskData = {
-        name: 'Cross-Store Test Task',
-        description: 'Testing store interactions',
-        priority: 'High',
-        status: 'todo',
-        listId: createdList.id
+        name: "Cross-Store Test Task",
+        description: "Testing store interactions",
+        priority: "High",
+        status: "todo",
+        listId: createdList.id,
       };
 
       const createdTask = await taskStore.createTask(taskData);
@@ -329,25 +375,25 @@ describe('Zustand Store Integration Tests', () => {
 
       // Test batch operations affect multiple stores
       const taskIds = [createdTask.id];
-      await taskStore.batchMoveTasks(taskIds, 'new-list-id');
-      
+      await taskStore.batchMoveTasks(taskIds, "new-list-id");
+
       // The task should be updated (though the list doesn't exist in this test)
       const updatedTask = taskStore.cache[createdTask.id];
-      expect(updatedTask.listId).toBe('new-list-id');
+      expect(updatedTask.listId).toBe("new-list-id");
     });
   });
 
-  describe('Performance and Optimization Tests', () => {
-    test('should handle large datasets efficiently', async () => {
+  describe("Performance and Optimization Tests", () => {
+    test("should handle large datasets efficiently", async () => {
       const startTime = performance.now();
 
       // Create multiple lists
       const listPromises = Array.from({ length: 10 }, (_, i) =>
         listStore.createList({
           name: `Performance List ${i}`,
-          color: '#3B82F6',
-          emoji: '📋',
-          isDefault: false
+          color: "#3B82F6",
+          emoji: "📋",
+          isDefault: false,
         })
       );
 
@@ -358,9 +404,9 @@ describe('Zustand Store Integration Tests', () => {
         taskStore.createTask({
           name: `Performance Task ${i}`,
           description: `Task ${i} for performance testing`,
-          priority: ['High', 'Medium', 'Low'][i % 3] as any,
-          status: ['todo', 'in_progress', 'done'][i % 3] as any,
-          listId: createdLists[i % createdLists.length].id
+          priority: ["High", "Medium", "Low"][i % 3] as any,
+          status: ["todo", "in_progress", "done"][i % 3] as any,
+          listId: createdLists[i % createdLists.length].id,
         })
       );
 
@@ -378,7 +424,7 @@ describe('Zustand Store Integration Tests', () => {
 
       // Test filtering performance
       const filterStartTime = performance.now();
-      taskStore.addStatusFilter('todo');
+      taskStore.addStatusFilter("todo");
       const todoTasks = taskStore.getFilteredTasks();
       const filterEndTime = performance.now();
 
@@ -386,7 +432,7 @@ describe('Zustand Store Integration Tests', () => {
       expect(filterEndTime - filterStartTime).toBeLessThan(100); // 100ms for filtering
     });
 
-    test('should handle cache operations efficiently', async () => {
+    test("should handle cache operations efficiently", async () => {
       const startTime = performance.now();
 
       // Create and cache tasks
@@ -395,16 +441,16 @@ describe('Zustand Store Integration Tests', () => {
           taskStore.createTask({
             name: `Cache Test Task ${i}`,
             description: `Testing cache performance`,
-            priority: 'Medium',
-            status: 'todo',
-            listId: 'test-list'
+            priority: "Medium",
+            status: "todo",
+            listId: "test-list",
           })
         )
       );
 
       // Test cache hits
       const cacheStartTime = performance.now();
-      tasks.forEach(task => {
+      tasks.forEach((task) => {
         const cached = taskStore.cache[task.id];
         expect(cached).toBeDefined();
       });
@@ -421,15 +467,15 @@ describe('Zustand Store Integration Tests', () => {
     });
   });
 
-  describe('Error Handling Tests', () => {
-    test('should handle database errors gracefully', async () => {
+  describe("Error Handling Tests", () => {
+    test("should handle database errors gracefully", async () => {
       // Test invalid task creation
       const invalidTaskData: CreateTaskData = {
-        name: '', // Invalid: empty name
-        description: 'Test',
-        priority: 'High',
-        status: 'todo',
-        listId: 'invalid-list-id'
+        name: "", // Invalid: empty name
+        description: "Test",
+        priority: "High",
+        status: "todo",
+        listId: "invalid-list-id",
       };
 
       await expect(taskStore.createTask(invalidTaskData)).rejects.toThrow();
@@ -444,86 +490,86 @@ describe('Zustand Store Integration Tests', () => {
 
       // Test valid operation after error
       const validTaskData: CreateTaskData = {
-        name: 'Valid Task After Error',
-        description: 'This should work',
-        priority: 'Medium',
-        status: 'todo',
-        listId: 'test-list'
+        name: "Valid Task After Error",
+        description: "This should work",
+        priority: "Medium",
+        status: "todo",
+        listId: "test-list",
       };
 
       const createdTask = await taskStore.createTask(validTaskData);
       expect(createdTask).toBeDefined();
-      expect(createdTask.name).toBe('Valid Task After Error');
+      expect(createdTask.name).toBe("Valid Task After Error");
     });
 
-    test('should handle batch operation failures', async () => {
+    test("should handle batch operation failures", async () => {
       // Create some valid tasks
       const tasks = await Promise.all(
         Array.from({ length: 3 }, (_, i) =>
           taskStore.createTask({
             name: `Batch Test Task ${i}`,
             description: `Testing batch operations`,
-            priority: 'Medium',
-            status: 'todo',
-            listId: 'test-list'
+            priority: "Medium",
+            status: "todo",
+            listId: "test-list",
           })
         )
       );
 
-      const taskIds = tasks.map(task => task.id);
+      const taskIds = tasks.map((task) => task.id);
 
       // Test partial failure scenario
       const batchUpdateData: Partial<UpdateTaskData> & { taskIds: TaskId[] } = {
         taskIds,
-        status: 'done'
+        status: "done",
       };
 
       const batchResult = await taskStore.batchUpdateTasks(batchUpdateData);
-      
+
       // Should complete successfully in this test environment
       expect(batchResult.total).toBe(3);
       expect(batchResult.successful).toBe(3);
       expect(batchResult.failed).toBe(0);
 
       // Verify all tasks are updated
-      tasks.forEach(task => {
+      tasks.forEach((task) => {
         const updatedTask = taskStore.cache[task.id];
-        expect(updatedTask.status).toBe('done');
+        expect(updatedTask.status).toBe("done");
       });
     });
   });
 
-  describe('Persistence and State Management Tests', () => {
-    test('should persist and restore state correctly', async () => {
+  describe("Persistence and State Management Tests", () => {
+    test("should persist and restore state correctly", async () => {
       // Create some data
       const listData: CreateListData = {
-        name: 'Persistence Test List',
-        color: '#EF4444',
-        emoji: '💾',
-        isDefault: false
+        name: "Persistence Test List",
+        color: "#EF4444",
+        emoji: "💾",
+        isDefault: false,
       };
 
       const createdList = await listStore.createList(listData);
       const taskData: CreateTaskData = {
-        name: 'Persistence Test Task',
-        description: 'Testing state persistence',
-        priority: 'High',
-        status: 'in_progress',
-        listId: createdList.id
+        name: "Persistence Test Task",
+        description: "Testing state persistence",
+        priority: "High",
+        status: "in_progress",
+        listId: createdList.id,
       };
 
       const createdTask = await taskStore.createTask(taskData);
 
       // Set some view preferences
-      taskStore.setViewType('grid');
-      taskStore.setSearchQuery('test');
+      taskStore.setViewType("grid");
+      taskStore.setSearchQuery("test");
 
       // Create a new store instance (simulating app restart)
       const newTaskStore = createTaskStore({
-        userId: 'test-user',
+        userId: "test-user",
         errorHandling: true,
         persistence: true, // Enable persistence
-        devtools: false
+        devtools: false,
       });
 
       // Should have persisted data (in real implementation)
@@ -534,12 +580,12 @@ describe('Zustand Store Integration Tests', () => {
       newTaskStore.clearCache();
     });
 
-    test('should maintain state consistency across operations', async () => {
+    test("should maintain state consistency across operations", async () => {
       const listData: CreateListData = {
-        name: 'Consistency Test List',
-        color: '#06B6D4',
-        emoji: '🔄',
-        isDefault: false
+        name: "Consistency Test List",
+        color: "#06B6D4",
+        emoji: "🔄",
+        isDefault: false,
       };
 
       const createdList = await listStore.createList(listData);
@@ -550,22 +596,22 @@ describe('Zustand Store Integration Tests', () => {
           taskStore.createTask({
             name: `Consistency Task ${i}`,
             description: `Testing state consistency ${i}`,
-            priority: ['High', 'Medium', 'Low'][i % 3] as any,
-            status: 'todo',
-            listId: createdList.id
+            priority: ["High", "Medium", "Low"][i % 3] as any,
+            status: "todo",
+            listId: createdList.id,
           })
         )
       );
 
       // Perform various operations
-      taskStore.selectMultipleTasks(tasks.slice(0, 3).map(t => t.id));
-      taskStore.addStatusFilter('todo');
-      taskStore.setViewType('list');
+      taskStore.selectMultipleTasks(tasks.slice(0, 3).map((t) => t.id));
+      taskStore.addStatusFilter("todo");
+      taskStore.setViewType("list");
 
       // Verify state consistency
       expect(taskStore.getSelectedTaskIds().length).toBe(3);
       expect(taskStore.getFilteredTasks().length).toBe(5); // All tasks match 'todo' filter
-      expect((taskStore as any).view.type).toBe('list');
+      expect((taskStore as any).view.type).toBe("list");
 
       // Clear filters and verify
       taskStore.clearFilters();
@@ -577,16 +623,16 @@ describe('Zustand Store Integration Tests', () => {
     });
   });
 
-  describe('Integration with Database API', () => {
-    test('should integrate properly with database operations', async () => {
+  describe("Integration with Database API", () => {
+    test("should integrate properly with database operations", async () => {
       // This test verifies that our stores properly integrate with the database API
       // In a real environment, this would test actual database operations
 
       const listData: CreateListData = {
-        name: 'DB Integration Test',
-        color: '#84CC16',
-        emoji: '🗄️',
-        isDefault: false
+        name: "DB Integration Test",
+        color: "#84CC16",
+        emoji: "🗄️",
+        isDefault: false,
       };
 
       const createdList = await listStore.createList(listData);
@@ -594,11 +640,11 @@ describe('Zustand Store Integration Tests', () => {
       expect(createdList.id).toBeDefined();
 
       const taskData: CreateTaskData = {
-        name: 'DB Integration Task',
-        description: 'Testing database integration',
-        priority: 'High',
-        status: 'todo',
-        listId: createdList.id
+        name: "DB Integration Task",
+        description: "Testing database integration",
+        priority: "High",
+        status: "todo",
+        listId: createdList.id,
       };
 
       const createdTask = await taskStore.createTask(taskData);
@@ -609,16 +655,16 @@ describe('Zustand Store Integration Tests', () => {
       // Test update operation
       const updateData: UpdateTaskData = {
         id: createdTask.id,
-        status: 'done',
-        priority: 'Medium'
+        status: "done",
+        priority: "Medium",
       };
 
       const updatedTask = await taskStore.updateTask(updateData);
-      expect(updatedTask.status).toBe('done');
-      expect(updatedTask.priority).toBe('Medium');
+      expect(updatedTask.status).toBe("done");
+      expect(updatedTask.priority).toBe("Medium");
 
       // Test that optimistic updates work
-      expect(taskStore.cache[createdTask.id].status).toBe('done');
+      expect(taskStore.cache[createdTask.id].status).toBe("done");
 
       // Clean up
       await taskStore.deleteTask(createdTask.id);
@@ -627,13 +673,13 @@ describe('Zustand Store Integration Tests', () => {
   });
 });
 
-describe('Store Manager Integration Tests', () => {
-  test('should initialize and manage multiple stores', () => {
+describe("Store Manager Integration Tests", () => {
+  test("should initialize and manage multiple stores", () => {
     const stores = initializeStores({
-      userId: 'integration-test-user',
+      userId: "integration-test-user",
       enableDevtools: false,
       enablePersistence: false,
-      enableErrorHandling: true
+      enableErrorHandling: true,
     });
 
     expect(stores.taskStore).toBeDefined();
@@ -645,32 +691,33 @@ describe('Store Manager Integration Tests', () => {
     expect(taskStore.getTaskCount).toBeDefined();
   });
 
-  test('should provide store statistics', () => {
+  test("should provide store statistics", () => {
     const stores = initializeStores();
-    const stats = require('../store/index').getStoreStats();
-    
+    const stats = require("../store/index").getStoreStats();
+
     expect(stats).toBeDefined();
-    expect(typeof stats).toBe('object');
+    expect(typeof stats).toBe("object");
   });
 });
 
 // Export test utilities
-export const createMockTask = (overrides: Partial<CreateTaskData> = {}): CreateTaskData => ({
-  name: 'Mock Task',
-  description: 'Mock description',
-  priority: 'Medium',
-  status: 'todo',
-  listId: 'mock-list-id',
-  ...overrides
+export const createMockTask = (
+  overrides: Partial<CreateTaskData> = {}
+): CreateTaskData => ({
+  name: "Mock Task",
+  description: "Mock description",
+  priority: "Medium",
+  status: "todo",
+  listId: "mock-list-id",
+  ...overrides,
 });
 
-export const createMockList = (overrides: Partial<CreateListData> = {}): CreateListData => ({
-  name: 'Mock List',
-  color: '#3B82F6',
-  emoji: '📋',
+export const createMockList = (
+  overrides: Partial<CreateListData> = {}
+): CreateListData => ({
+  name: "Mock List",
+  color: "#3B82F6",
+  emoji: "📋",
   isDefault: false,
-  ...overrides
+  ...overrides,
 });
-
-export const waitForAsync = (ms: number = 0) => 
-  new Promise(resolve => setTimeout(resolve, ms));

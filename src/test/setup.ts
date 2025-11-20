@@ -6,19 +6,73 @@
 import { expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
 import { TextEncoder, TextDecoder } from 'util';
 
+// Import DOM environment setup for component testing
+import './dom-setup';
+import './react-mocks';
+
+// Set up React hooks dispatcher
+import React from 'react';
+
+// Mock React hooks
+const mockUseState = (initial: any) => [initial, () => {}];
+const mockUseEffect = () => {};
+const mockUseCallback = (fn: any) => fn;
+const mockUseMemo = (fn: any) => fn();
+const mockUseRef = () => ({ current: null });
+const mockUseContext = (context: any) => context._currentValue || {};
+const mockUseReducer = (reducer: any, initial: any) => [initial, () => {}];
+
+// Mock dispatcher
+const mockDispatcher = {
+  useState: mockUseState,
+  useEffect: mockUseEffect,
+  useCallback: mockUseCallback,
+  useMemo: mockUseMemo,
+  useRef: mockUseRef,
+  useContext: mockUseContext,
+  useReducer: mockUseReducer,
+};
+
+// Set up global React internals for hooks
+(global as any).ReactCurrentDispatcher = {
+  current: mockDispatcher,
+};
+
+(global as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = {
+  ReactCurrentDispatcher: {
+    current: mockDispatcher,
+  },
+};
+
 // Set up global text encoder/decoder for Node.js environment
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
 // Mock localStorage for client-side tests
-const localStorageMock = {
-  getItem: (key: string) => null,
-  setItem: (key: string, value: string) => {},
-  removeItem: (key: string) => {},
-  clear: () => {},
-};
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => {
+      store[key] = String(value);
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
+    get length() {
+      return Object.keys(store).length;
+    },
+    key: (index: number) => {
+      const keys = Object.keys(store);
+      return keys[index] || null;
+    },
+  };
+})();
 
-global.localStorage = localStorageMock as any;
+global.localStorage = localStorageMock;
 
 // Mock window object for client-side tests
 (global as any).window = {

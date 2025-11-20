@@ -72,6 +72,44 @@ export interface AppTask extends Omit<Task, 'id' | 'userId' | 'listId'> {
   timeRemaining?: string;
   completionPercentage: number;
   estimatedDuration?: string;
+  // Application Properties
+  dueDate?: Date; // Alias for deadline for UI compatibility
+  reminders?: any[]; // Reminder array
+  subtasks?: any[]; // Subtask array
+  
+  // Computed Properties
+  isOverdue: boolean;
+  isDueToday: boolean;
+  isDueThisWeek: boolean;
+  timeRemaining?: string;
+  completionPercentage: number;
+  estimatedDuration?: string;
+  actualDuration?: string;
+  customFields?: Record<string, any>;
+  dueDate?: Date; // Alias for deadline for UI compatibility
+  reminders?: any[]; // Reminder array
+  
+  // Computed Properties
+  isOverdue: boolean;
+  isDueToday: boolean;
+  isDueThisWeek: boolean;
+  timeRemaining?: string;
+  completionPercentage: number;
+  estimatedDuration?: string;
+  actualDuration?: string;
+  tags?: string[];
+  notifications?: NotificationConfig[];
+  attachments?: TaskAttachment[];
+  dueDate?: Date; // Alias for deadline for UI compatibility
+  
+  // Computed Properties
+  isOverdue: boolean;
+  isDueToday: boolean;
+  isDueThisWeek: boolean;
+  timeRemaining?: string;
+  completionPercentage: number;
+  estimatedDuration?: string;
+  actualDuration?: string;
   actualDuration?: string;
 }
 

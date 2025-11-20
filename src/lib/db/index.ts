@@ -1,29 +1,29 @@
 // Database Connection and Management for Daily Task Planner
 // SQLite implementation using better-sqlite3
 
-import Database from 'better-sqlite3';
-import fs from 'fs';
-import path from 'path';
-import { 
-  DatabaseConfig, 
-  DatabaseError, 
-  ValidationError, 
+import Database from "better-sqlite3";
+import fs from "fs";
+import path from "path";
+import {
+  DatabaseConfig,
+  DatabaseError,
+  ValidationError,
   NotFoundError,
   Transaction,
   DatabaseStats,
-  type DatabaseOperation
-} from './types';
-import { 
-  COMPLETE_SCHEMA_WITH_TRIGGERS, 
+  type DatabaseOperation,
+} from "./types";
+import {
+  COMPLETE_SCHEMA_WITH_TRIGGERS,
   DEFAULT_DATABASE_CONFIG,
   VALIDATION_QUERIES,
   SCHEMA_VERSION,
-  MIGRATIONS
-} from './schema';
+  MIGRATIONS,
+} from "./schema";
 
 export class DatabaseManager {
   private static instance: DatabaseManager;
-  private db: Database.Database | null = null;
+  private db: any | null = null;
   private config: DatabaseConfig;
   private isInitialized = false;
   private backupInterval: NodeJS.Timeout | null = null;
@@ -56,8 +56,10 @@ export class DatabaseManager {
       this.isInitialized = true;
     } catch (error) {
       throw new DatabaseError(
-        `Failed to initialize database: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'INIT_ERROR'
+        `Failed to initialize database: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        "INIT_ERROR"
       );
     }
   }
@@ -65,9 +67,9 @@ export class DatabaseManager {
   /**
    * Get database connection
    */
-  public getConnection(): Database.Database {
+  public getConnection(): any {
     if (!this.db) {
-      throw new DatabaseError('Database not initialized', 'NOT_INITIALIZED');
+      throw new DatabaseError("Database not initialized", "NOT_INITIALIZED");
     }
     return this.db;
   }
@@ -77,15 +79,12 @@ export class DatabaseManager {
    */
   private createConnection(): void {
     try {
-      this.db = new Database(this.config.path, {
-        timeout: this.config.timeout,
-        verbose: this.config.verbose ? console.log : undefined,
-      });
+      this.db = new Database(this.config.path);
 
       // Set database pragmas
-      this.db.pragma('foreign_keys = ON');
+      this.db.exec("PRAGMA foreign_keys = ON");
       if (this.config.WAL) {
-        this.db.pragma('journal_mode = WAL');
+        this.db.exec("PRAGMA journal_mode = WAL");
       }
 
       if (this.config.verbose) {
@@ -93,8 +92,10 @@ export class DatabaseManager {
       }
     } catch (error) {
       throw new DatabaseError(
-        `Failed to create database connection: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'CONNECTION_ERROR'
+        `Failed to create database connection: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        "CONNECTION_ERROR"
       );
     }
   }
@@ -104,37 +105,47 @@ export class DatabaseManager {
    */
   private async setupSchema(): Promise<void> {
     if (!this.db) {
-      throw new DatabaseError('Database not initialized', 'NOT_INITIALIZED');
+      throw new DatabaseError("Database not initialized", "NOT_INITIALIZED");
     }
 
     try {
       // Check if tables already exist
       const tableCount = this.db
-        .prepare("SELECT COUNT(*) as count FROM sqlite_master WHERE type='table'")
+        .prepare(
+          "SELECT COUNT(*) as count FROM sqlite_master WHERE type='table'"
+        )
         .get() as { count: number };
 
       if (tableCount.count === 0) {
         // First time setup
         this.db.exec(COMPLETE_SCHEMA_WITH_TRIGGERS);
-        
+
         // Create migrations table
-        this.db.prepare(`
+        this.db
+          .prepare(
+            `
           CREATE TABLE IF NOT EXISTS schema_migrations (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             version TEXT NOT NULL,
             applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
           )
-        `).run();
+        `
+          )
+          .run();
 
         // Record initial migration
-        this.db.prepare(`
+        this.db
+          .prepare(
+            `
           INSERT INTO schema_migrations (id, name, version)
           VALUES (?, ?, ?)
-        `).run(MIGRATIONS[0].id, MIGRATIONS[0].name, SCHEMA_VERSION);
+        `
+          )
+          .run(MIGRATIONS[0].id, MIGRATIONS[0].name, SCHEMA_VERSION);
 
         if (this.config.verbose) {
-          console.log('Database schema created successfully');
+          console.log("Database schema created successfully");
         }
       }
 
@@ -142,8 +153,10 @@ export class DatabaseManager {
       this.ensureDataDirectory();
     } catch (error) {
       throw new DatabaseError(
-        `Failed to setup schema: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'SCHEMA_ERROR'
+        `Failed to setup schema: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        "SCHEMA_ERROR"
       );
     }
   }
@@ -153,40 +166,55 @@ export class DatabaseManager {
    */
   private async validateSchema(): Promise<void> {
     if (!this.db) {
-      throw new DatabaseError('Database not initialized', 'NOT_INITIALIZED');
+      throw new DatabaseError("Database not initialized", "NOT_INITIALIZED");
     }
 
     try {
       // Check if all required tables exist
-      const existingTables = this.db.prepare(VALIDATION_QUERIES.checkTablesExist).all() as { name: string }[];
-      const existingTableNames = existingTables.map(table => table.name);
-      
+      const existingTables = this.db
+        .prepare(VALIDATION_QUERIES.checkTablesExist)
+        .all() as { name: string }[];
+      const existingTableNames = existingTables.map((table) => table.name);
+
       const requiredTables = [
-        'users', 'lists', 'tasks', 'labels', 'task_labels',
-        'subtasks', 'reminders', 'task_history', 'attachments'
+        "users",
+        "lists",
+        "tasks",
+        "labels",
+        "task_labels",
+        "subtasks",
+        "reminders",
+        "task_history",
+        "attachments",
       ];
 
-      const missingTables = requiredTables.filter(table => !existingTableNames.includes(table));
+      const missingTables = requiredTables.filter(
+        (table) => !existingTableNames.includes(table)
+      );
       if (missingTables.length > 0) {
         throw new DatabaseError(
-          `Missing required tables: ${missingTables.join(', ')}`,
-          'SCHEMA_VALIDATION_ERROR'
+          `Missing required tables: ${missingTables.join(", ")}`,
+          "SCHEMA_VALIDATION_ERROR"
         );
       }
 
       // Validate critical indexes
-      const indexes = this.db.prepare(VALIDATION_QUERIES.checkIndexesExist).all() as { name: string }[];
+      const indexes = this.db
+        .prepare(VALIDATION_QUERIES.checkIndexesExist)
+        .all() as { name: string }[];
       if (indexes.length === 0) {
-        console.warn('No indexes found - this may impact performance');
+        console.warn("No indexes found - this may impact performance");
       }
 
       if (this.config.verbose) {
-        console.log('Database schema validation passed');
+        console.log("Database schema validation passed");
       }
     } catch (error) {
       throw new DatabaseError(
-        `Schema validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'SCHEMA_VALIDATION_ERROR'
+        `Schema validation failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        "SCHEMA_VALIDATION_ERROR"
       );
     }
   }
@@ -194,16 +222,21 @@ export class DatabaseManager {
   /**
    * Execute database transaction
    */
-  public async executeTransaction<T>(operations: DatabaseOperation<T>[]): Promise<T[]> {
+  public async executeTransaction<T>(
+    operations: DatabaseOperation<T>[]
+  ): Promise<T[]> {
     if (!this.db) {
-      throw new DatabaseError('Database not initialized', 'NOT_INITIALIZED');
+      throw new DatabaseError("Database not initialized", "NOT_INITIALIZED");
     }
 
     const transaction = this.db.transaction((ops: DatabaseOperation<T>[]) => {
-      return ops.map(op => {
+      return ops.map((op) => {
         const result = op.execute();
         if (result instanceof Promise) {
-          throw new DatabaseError('Synchronous operations only in transactions', 'ASYNC_TRANSACTION_ERROR');
+          throw new DatabaseError(
+            "Synchronous operations only in transactions",
+            "ASYNC_TRANSACTION_ERROR"
+          );
         }
         return result;
       });
@@ -213,10 +246,11 @@ export class DatabaseManager {
       const results = transaction(operations);
       return results;
     } catch (error) {
-      // Rollback is automatic in better-sqlite3 transactions
       throw new DatabaseError(
-        `Transaction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'TRANSACTION_ERROR'
+        `Transaction failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        "TRANSACTION_ERROR"
       );
     }
   }
@@ -226,7 +260,7 @@ export class DatabaseManager {
    */
   public createTransaction(): Transaction {
     if (!this.db) {
-      throw new DatabaseError('Database not initialized', 'NOT_INITIALIZED');
+      throw new DatabaseError("Database not initialized", "NOT_INITIALIZED");
     }
 
     let inTransaction = false;
@@ -234,20 +268,27 @@ export class DatabaseManager {
     return {
       execute: async <T>(operation: DatabaseOperation<T>): Promise<T> => {
         if (!inTransaction) {
-          throw new DatabaseError('Transaction not started', 'TRANSACTION_NOT_STARTED');
+          throw new DatabaseError(
+            "Transaction not started",
+            "TRANSACTION_NOT_STARTED"
+          );
         }
 
         try {
           const result = operation.execute();
           if (result instanceof Promise) {
-            throw new DatabaseError('Synchronous operations only in transactions', 'ASYNC_TRANSACTION_ERROR');
+            throw new DatabaseError(
+              "Synchronous operations only in transactions",
+              "ASYNC_TRANSACTION_ERROR"
+            );
           }
           return result;
         } catch (error) {
-          // Rollback will be handled by the transaction context
           throw new DatabaseError(
-            `Transaction operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            'TRANSACTION_OPERATION_ERROR'
+            `Transaction operation failed: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
+            "TRANSACTION_OPERATION_ERROR"
           );
         }
       },
@@ -258,38 +299,67 @@ export class DatabaseManager {
 
       rollback: async (): Promise<void> => {
         inTransaction = false;
-        throw new DatabaseError('Transaction rolled back', 'TRANSACTION_ROLLED_BACK');
+        throw new DatabaseError(
+          "Transaction rolled back",
+          "TRANSACTION_ROLLED_BACK"
+        );
       },
     };
   }
 
   /**
+   * Execute raw SQL statements
+   */
+  public exec(sql: string): void {
+    if (!this.db) {
+      throw new DatabaseError("Database not initialized", "NOT_INITIALIZED");
+    }
+
+    try {
+      this.db.exec(sql);
+    } catch (error) {
+      throw new DatabaseError(
+        `Raw SQL execution failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        "EXEC_ERROR"
+      );
+    }
+  }
+
+  /**
    * Health check for database
    */
-  public async healthCheck(): Promise<{ healthy: boolean; message: string; stats?: DatabaseStats }> {
+  public async healthCheck(): Promise<{
+    healthy: boolean;
+    message: string;
+    stats?: DatabaseStats;
+  }> {
     if (!this.db) {
       return {
         healthy: false,
-        message: 'Database not initialized',
+        message: "Database not initialized",
       };
     }
 
     try {
       // Test basic operations
-      this.db.prepare('SELECT 1').get();
-      
+      this.db.prepare("SELECT 1").get();
+
       // Get database stats
       const stats = await this.getDatabaseStats();
 
       return {
         healthy: true,
-        message: 'Database is healthy',
+        message: "Database is healthy",
         stats,
       };
     } catch (error) {
       return {
         healthy: false,
-        message: `Database health check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `Database health check failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
       };
     }
   }
@@ -299,12 +369,14 @@ export class DatabaseManager {
    */
   public async getDatabaseStats(): Promise<DatabaseStats> {
     if (!this.db) {
-      throw new DatabaseError('Database not initialized', 'NOT_INITIALIZED');
+      throw new DatabaseError("Database not initialized", "NOT_INITIALIZED");
     }
 
     try {
-      const stats = this.db.prepare(`
-        SELECT 
+      const stats = this.db
+        .prepare(
+          `
+        SELECT
           (SELECT COUNT(*) FROM users) as totalUsers,
           (SELECT COUNT(*) FROM lists) as totalLists,
           (SELECT COUNT(*) FROM tasks) as totalTasks,
@@ -313,13 +385,17 @@ export class DatabaseManager {
           (SELECT COUNT(*) FROM reminders) as totalReminders,
           (SELECT COUNT(*) FROM attachments) as totalAttachments,
           (SELECT COUNT(*) FROM task_history) as totalHistoryEntries
-      `).get() as DatabaseStats;
+      `
+        )
+        .get() as DatabaseStats;
 
       return stats;
     } catch (error) {
       throw new DatabaseError(
-        `Failed to get database stats: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'STATS_ERROR'
+        `Failed to get database stats: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        "STATS_ERROR"
       );
     }
   }
@@ -329,30 +405,30 @@ export class DatabaseManager {
    */
   public async createBackup(backupPath?: string): Promise<void> {
     if (!this.db) {
-      throw new DatabaseError('Database not initialized', 'NOT_INITIALIZED');
+      throw new DatabaseError("Database not initialized", "NOT_INITIALIZED");
     }
 
     try {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
       const defaultBackupPath = path.join(
         path.dirname(this.config.path),
         `backup_tasks_${timestamp}.db`
       );
-      
+
       const targetPath = backupPath || defaultBackupPath;
-      
-      // Create backup using SQLite backup API
-      const backup = this.db.backup(targetPath);
-      await backup.step(-1);
-      backup.close();
+
+      // Create backup using file copy
+      fs.copyFileSync(this.config.path, targetPath);
 
       if (this.config.verbose) {
         console.log(`Database backup created: ${targetPath}`);
       }
     } catch (error) {
       throw new DatabaseError(
-        `Failed to create backup: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'BACKUP_ERROR'
+        `Failed to create backup: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        "BACKUP_ERROR"
       );
     }
   }
@@ -370,9 +446,9 @@ export class DatabaseManager {
       this.db.close();
       this.db = null;
       this.isInitialized = false;
-      
+
       if (this.config.verbose) {
-        console.log('Database connection closed');
+        console.log("Database connection closed");
       }
     }
   }
@@ -396,7 +472,7 @@ export class DatabaseManager {
         try {
           await this.createBackup();
         } catch (error) {
-          console.error('Scheduled backup failed:', error);
+          console.error("Scheduled backup failed:", error);
         }
       }, this.config.backupInterval);
     }
@@ -407,7 +483,7 @@ export class DatabaseManager {
    */
   public async reset(): Promise<void> {
     if (!this.db) {
-      throw new DatabaseError('Database not initialized', 'NOT_INITIALIZED');
+      throw new DatabaseError("Database not initialized", "NOT_INITIALIZED");
     }
 
     try {
@@ -416,8 +492,10 @@ export class DatabaseManager {
       await this.initialize();
     } catch (error) {
       throw new DatabaseError(
-        `Failed to reset database: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'RESET_ERROR'
+        `Failed to reset database: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        "RESET_ERROR"
       );
     }
   }
@@ -427,16 +505,18 @@ export class DatabaseManager {
    */
   public query<T = any>(sql: string, params: any[] = []): T[] {
     if (!this.db) {
-      throw new DatabaseError('Database not initialized', 'NOT_INITIALIZED');
+      throw new DatabaseError("Database not initialized", "NOT_INITIALIZED");
     }
 
     try {
       const statement = this.db.prepare(sql);
-      return statement.all(params) as T[];
+      return statement.all(...params) as T[];
     } catch (error) {
       throw new DatabaseError(
-        `Query failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'QUERY_ERROR'
+        `Query failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        "QUERY_ERROR"
       );
     }
   }
@@ -444,18 +524,23 @@ export class DatabaseManager {
   /**
    * Execute single SQL statement
    */
-  public run(sql: string, params: any[] = []): { changes: number; lastInsertRowid: any } {
+  public run(
+    sql: string,
+    params: any[] = []
+  ): { changes: number; lastInsertRowid: any } {
     if (!this.db) {
-      throw new DatabaseError('Database not initialized', 'NOT_INITIALIZED');
+      throw new DatabaseError("Database not initialized", "NOT_INITIALIZED");
     }
 
     try {
       const statement = this.db.prepare(sql);
-      return statement.run(params);
+      return statement.run(...params);
     } catch (error) {
       throw new DatabaseError(
-        `Statement execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'EXECUTION_ERROR'
+        `Statement execution failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        "EXECUTION_ERROR"
       );
     }
   }
@@ -465,16 +550,18 @@ export class DatabaseManager {
    */
   public get<T = any>(sql: string, params: any[] = []): T | undefined {
     if (!this.db) {
-      throw new DatabaseError('Database not initialized', 'NOT_INITIALIZED');
+      throw new DatabaseError("Database not initialized", "NOT_INITIALIZED");
     }
 
     try {
       const statement = this.db.prepare(sql);
-      return statement.get(params) as T | undefined;
+      return statement.get(...params) as T | undefined;
     } catch (error) {
       throw new DatabaseError(
-        `Get operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'GET_ERROR'
+        `Get operation failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        "GET_ERROR"
       );
     }
   }
@@ -488,8 +575,10 @@ export class DatabaseManager {
     }
 
     try {
-      const result = this.db.prepare('PRAGMA journal_mode').get() as { journal_mode: string };
-      return result.journal_mode.toLowerCase() === 'wal';
+      const result = this.db.prepare("PRAGMA journal_mode").get() as {
+        journal_mode: string;
+      };
+      return result.journal_mode.toLowerCase() === "wal";
     } catch (error) {
       return false;
     }
@@ -500,20 +589,82 @@ export class DatabaseManager {
    */
   public optimize(): void {
     if (!this.db) {
-      throw new DatabaseError('Database not initialized', 'NOT_INITIALIZED');
+      throw new DatabaseError("Database not initialized", "NOT_INITIALIZED");
     }
 
     try {
-      this.db.pragma('optimize');
-      this.db.exec('VACUUM');
-      
+      this.db.exec("PRAGMA optimize");
+      this.db.exec("VACUUM");
+
       if (this.config.verbose) {
-        console.log('Database optimized');
+        console.log("Database optimized");
       }
     } catch (error) {
       throw new DatabaseError(
-        `Failed to optimize database: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'OPTIMIZE_ERROR'
+        `Failed to optimize database: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        "OPTIMIZE_ERROR"
+      );
+    }
+  }
+  /**
+   * Run database migrations (for testing)
+   */
+  public async runMigrations(): Promise<void> {
+    if (!this.db) {
+      throw new DatabaseError("Database not initialized", "NOT_INITIALIZED");
+    }
+
+    try {
+      // Check if migrations table exists
+      const migrationsTableExists = this.db
+        .prepare(
+          `
+        SELECT name FROM sqlite_master
+        WHERE type='table' AND name='schema_migrations'
+      `
+        )
+        .get();
+
+      if (!migrationsTableExists) {
+        // Create migrations table
+        this.db
+          .prepare(
+            `
+          CREATE TABLE IF NOT EXISTS schema_migrations (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            version TEXT NOT NULL,
+            applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `
+          )
+          .run();
+
+        // Apply initial schema
+        this.db.exec(COMPLETE_SCHEMA_WITH_TRIGGERS);
+
+        // Record initial migration
+        this.db
+          .prepare(
+            `
+          INSERT INTO schema_migrations (id, name, version)
+          VALUES (?, ?, ?)
+        `
+          )
+          .run(MIGRATIONS[0].id, MIGRATIONS[0].name, SCHEMA_VERSION);
+
+        if (this.config.verbose) {
+          console.log("Database migrations applied successfully");
+        }
+      }
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to run migrations: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        "MIGRATION_ERROR"
       );
     }
   }
@@ -521,22 +672,3 @@ export class DatabaseManager {
 
 // Singleton instance
 export const db = DatabaseManager.getInstance();
-
-// Export convenience functions
-export const {
-  query,
-  run,
-  get,
-  getDatabaseStats,
-  healthCheck,
-  createBackup,
-  close,
-} = {
-  query: (sql: string, params: any[] = []) => db.query(sql, params),
-  run: (sql: string, params: any[] = []) => db.run(sql, params),
-  get: (sql: string, params: any[] = []) => db.get(sql, params),
-  getDatabaseStats: () => db.getDatabaseStats(),
-  healthCheck: () => db.healthCheck(),
-  createBackup: (backupPath?: string) => db.createBackup(backupPath),
-  close: () => db.close(),
-};

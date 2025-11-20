@@ -9,7 +9,7 @@ export function AppInit() {
   useEffect(() => {
     appStore.loadUser()
       .then(() => console.log('App initialized'))
-      .catch(error => console.error('Failed to initialize app:', error))
+      .catch((error: unknown) => console.error('Failed to initialize app:', error))
   }, [])
 
   return null

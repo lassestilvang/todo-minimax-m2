@@ -1,24 +1,24 @@
 /**
  * API and Response Types for Daily Task Planner Application
- * 
+ *
  * This module defines types for API interactions, request/response structures,
  * and error handling patterns used throughout the application layer.
  */
 
-import type { 
-  Task, 
-  List, 
-  Label, 
-  User, 
-  Subtask, 
-  Reminder, 
-  Attachment, 
+import type {
+  Task,
+  List,
+  Label,
+  User,
+  Subtask,
+  Reminder,
+  Attachment,
   TaskHistory,
   TaskWithDetails,
   ListWithTaskCount,
   LabelWithTaskCount,
-  DatabaseError
-} from '../lib/db/types';
+  DatabaseError,
+} from "../lib/db/types";
 import type {
   TaskId,
   ListId,
@@ -36,8 +36,8 @@ import type {
   ComponentState,
   NotificationConfig,
   TimeTracking,
-  TimePeriod
-} from './utils';
+  TimePeriod,
+} from "./utils";
 
 // =============================================================================
 // REQUEST TYPES
@@ -48,7 +48,7 @@ import type {
  */
 export interface ApiRequest<T = any> {
   url: string;
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   data?: T;
   params?: Record<string, any>;
   headers?: Record<string, string>;
@@ -82,13 +82,13 @@ export interface CreateTaskRequest {
   name: string;
   description?: string;
   listId: ListId;
-  priority?: 'High' | 'Medium' | 'Low' | 'None';
+  priority?: "High" | "Medium" | "Low" | "None";
   date?: Date;
   deadline?: Date;
   estimate?: string;
   isRecurring?: boolean;
   recurringPattern?: {
-    type: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+    type: "daily" | "weekly" | "monthly" | "yearly" | "custom";
     interval: number;
     daysOfWeek?: number[];
     dayOfMonth?: number;
@@ -98,8 +98,8 @@ export interface CreateTaskRequest {
   };
   parentTaskId?: TaskId;
   labels?: LabelId[];
-  subtasks?: Omit<CreateSubtaskRequest, 'taskId'>[];
-  reminders?: Omit<CreateReminderRequest, 'taskId'>[];
+  subtasks?: Omit<CreateSubtaskRequest, "taskId">[];
+  reminders?: Omit<CreateReminderRequest, "taskId">[];
 }
 
 /**
@@ -107,7 +107,7 @@ export interface CreateTaskRequest {
  */
 export interface UpdateTaskRequest extends Partial<CreateTaskRequest> {
   id: TaskId;
-  status?: 'todo' | 'in_progress' | 'done' | 'archived';
+  status?: "todo" | "in_progress" | "done" | "archived";
   actualTime?: string;
   position?: number;
 }
@@ -118,8 +118,8 @@ export interface UpdateTaskRequest extends Partial<CreateTaskRequest> {
 export interface TaskQueryParams extends PaginationParams {
   listId?: ListId;
   labelId?: LabelId;
-  status?: Task['status'];
-  priority?: Task['priority'];
+  status?: Task["status"];
+  priority?: Task["priority"];
   dateRange?: DateRange;
   dueAfter?: Date;
   dueBefore?: Date;
@@ -136,7 +136,7 @@ export interface TaskQueryParams extends PaginationParams {
  */
 export interface BatchTaskOperation {
   taskIds: TaskId[];
-  operation: 'update' | 'delete' | 'move' | 'status_change';
+  operation: "update" | "delete" | "move" | "status_change";
   data?: Partial<UpdateTaskRequest>;
 }
 
@@ -248,7 +248,7 @@ export interface UpdateSubtaskRequest extends Partial<CreateSubtaskRequest> {
 export interface CreateReminderRequest {
   taskId: TaskId;
   remindAt: Date;
-  method?: 'push' | 'email' | 'sms';
+  method?: "push" | "email" | "sms";
 }
 
 /**
@@ -292,7 +292,7 @@ export interface UpdateUserRequest {
   name?: string;
   avatar?: string;
   preferences?: {
-    theme?: 'light' | 'dark' | 'system';
+    theme?: "light" | "dark" | "system";
     timezone?: string;
     dateFormat?: string;
   };
@@ -310,16 +310,6 @@ export interface ChangePasswordRequest {
 // =============================================================================
 // RESPONSE TYPES
 // =============================================================================
-
-/**
- * Standard API response wrapper
- */
-export type ApiResponse<T> = {
-  success: boolean;
-  data?: T;
-  error?: ApiError;
-  meta?: ResponseMetadata;
-};
 
 /**
  * Task-specific response types
@@ -383,8 +373,8 @@ export type DashboardStatsResponse = ApiResponse<{
   completedTasks: number;
   overdueTasks: number;
   upcomingTasks: number;
-  tasksByStatus: Record<Task['status'], number>;
-  tasksByPriority: Record<Task['priority'], number>;
+  tasksByStatus: Record<Task["status"], number>;
+  tasksByPriority: Record<Task["priority"], number>;
   listsByTaskCount: Array<ListWithTaskCount>;
   recentActivity: TaskHistory[];
 }>;
@@ -396,18 +386,18 @@ export type DashboardStatsResponse = ApiResponse<{
 /**
  * WebSocket message types for real-time updates
  */
-export type WebSocketMessageType = 
-  | 'task_created'
-  | 'task_updated' 
-  | 'task_deleted'
-  | 'task_status_changed'
-  | 'list_updated'
-  | 'label_updated'
-  | 'user_online'
-  | 'user_offline'
-  | 'notification'
-  | 'ping'
-  | 'pong';
+export type WebSocketMessageType =
+  | "task_created"
+  | "task_updated"
+  | "task_deleted"
+  | "task_status_changed"
+  | "list_updated"
+  | "label_updated"
+  | "user_online"
+  | "user_offline"
+  | "notification"
+  | "ping"
+  | "pong";
 
 /**
  * WebSocket message structure
@@ -426,7 +416,7 @@ export interface WebSocketMessage<T = any> {
 export interface TaskUpdateMessage {
   task: TaskWithDetails;
   changes?: Record<string, any>;
-  action: 'created' | 'updated' | 'deleted' | 'status_changed';
+  action: "created" | "updated" | "deleted" | "status_changed";
 }
 
 /**
@@ -434,7 +424,7 @@ export interface TaskUpdateMessage {
  */
 export interface NotificationMessage {
   id: string;
-  type: 'reminder' | 'deadline' | 'overdue' | 'assignment';
+  type: "reminder" | "deadline" | "overdue" | "assignment";
   title: string;
   message: string;
   taskId?: TaskId;
@@ -496,8 +486,8 @@ export interface RateLimitInfo {
  * Bulk operation request
  */
 export interface BulkOperationRequest<T = any> {
-  operation: 'create' | 'update' | 'delete' | 'move' | 'status_change';
-  entityType: 'task' | 'list' | 'label';
+  operation: "create" | "update" | "delete" | "move" | "status_change";
+  entityType: "task" | "list" | "label";
   entities: Array<T & { id?: string }>;
   options?: {
     continueOnError?: boolean;
@@ -533,12 +523,12 @@ export interface BulkOperationResponse<T = any> {
  * Data export request
  */
 export interface ExportRequest {
-  format: 'json' | 'csv' | 'pdf';
-  entities: Array<'tasks' | 'lists' | 'labels' | 'subtasks' | 'reminders'>;
+  format: "json" | "csv" | "pdf";
+  entities: Array<"tasks" | "lists" | "labels" | "subtasks" | "reminders">;
   filters?: {
     dateRange?: DateRange;
     listIds?: ListId[];
-    status?: Task['status'][];
+    status?: Task["status"][];
   };
   options?: {
     includeAttachments?: boolean;
@@ -552,7 +542,7 @@ export interface ExportRequest {
  */
 export interface ExportJobResponse {
   jobId: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: "pending" | "processing" | "completed" | "failed";
   downloadUrl?: string;
   expiresAt?: string;
   fileSize?: number;
@@ -564,15 +554,27 @@ export interface ExportJobResponse {
 // =============================================================================
 
 /**
+ * Local search filters for the SearchComponent
+ */
+export interface SearchFilters {
+  type?: "all" | "tasks" | "lists";
+  status?: string;
+  priority?: string;
+  dueDateFrom?: string;
+  dueDateTo?: string;
+  completed?: boolean;
+}
+
+/**
  * Advanced search request
  */
 export interface SearchRequest {
   query: string;
   filters?: {
-    entityTypes?: Array<'task' | 'list' | 'label'>;
+    entityTypes?: Array<"task" | "list" | "label">;
     dateRange?: DateRange;
-    status?: Task['status'][];
-    priority?: Task['priority'][];
+    status?: Task["status"][];
+    priority?: Task["priority"][];
     listIds?: ListId[];
     labelIds?: LabelId[];
   };
@@ -603,7 +605,7 @@ export interface CursorPaginationParams {
   cursor?: string;
   limit?: number;
   sortBy?: string;
-  sortDirection?: 'asc' | 'desc';
+  sortDirection?: "asc" | "desc";
 }
 
 /**

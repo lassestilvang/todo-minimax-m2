@@ -25,7 +25,7 @@ interface ListCardProps {
   list: AppList;
   onSelect?: (list: AppList) => void;
   onEdit?: (list: AppList) => void;
-  onDelete?: (listId: string) void;
+  onDelete?: (listId: string) => void;
   onToggleFavorite?: (listId: string, isFavorite: boolean) => void;
   className?: string;
   compact?: boolean;
@@ -52,10 +52,10 @@ export function ListCard({
   const { tasks } = useTasks();
 
   // Get task counts for this list
-  const listTasks = tasks.filter(task => task.listId === list.id);
-  const completedTasks = listTasks.filter(task => task.status === 'completed');
-  const pendingTasks = listTasks.filter(task => task.status === 'todo');
-  const inProgressTasks = listTasks.filter(task => task.status === 'in-progress');
+  const listTasks = tasks.filter((task: any) => task.listId === list.id);
+  const completedTasks = listTasks.filter((task: any) => task.status === 'completed');
+  const pendingTasks = listTasks.filter((task: any) => task.status === 'todo');
+  const inProgressTasks = listTasks.filter((task: any) => task.status === 'in-progress');
 
   const handleToggleFavorite = async () => {
     try {
@@ -141,8 +141,8 @@ export function ListCard({
               {editing ? (
                 <Input
                   value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
                   onBlur={handleEdit}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditName(e.target.value)}
                   onKeyDown={handleKeyPress}
                   className="text-sm font-medium h-7"
                   autoFocus

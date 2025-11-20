@@ -1,21 +1,21 @@
 /**
  * Zustand Store Types for Daily Task Planner Application
- * 
+ *
  * This module defines comprehensive TypeScript interfaces for Zustand store management,
  * including state types, action creators, selectors, and middleware configuration.
  */
 
-import type { 
-  Task, 
-  List, 
-  Label, 
+import type {
+  Task,
+  List,
+  Label,
   User,
   Subtask,
   Reminder,
   Attachment,
   Priority,
-  TaskStatus
-} from '../lib/db/types';
+  TaskStatus,
+} from "../lib/db/types";
 import type {
   TaskId,
   ListId,
@@ -32,8 +32,8 @@ import type {
   NotificationConfig,
   SortConfig,
   TimePeriod,
-  TaskGroupBy
-} from './utils';
+  TaskGroupBy,
+} from "./utils";
 import type {
   AppTask,
   TaskState,
@@ -45,8 +45,8 @@ import type {
   UpdateTaskData,
   TaskBatchResult,
   TaskQueryParams,
-  TaskContextValue
-} from './tasks';
+  TaskContextValue,
+} from "./tasks";
 import type {
   AppList,
   ListState,
@@ -57,8 +57,8 @@ import type {
   UpdateListData,
   ListBatchResult,
   ListQueryParams,
-  ListContextValue
-} from './lists';
+  ListContextValue,
+} from "./lists";
 import type {
   TaskFormData,
   ListFormData,
@@ -66,8 +66,8 @@ import type {
   ListFormState,
   UserFormData,
   LabelFormData,
-  FormState
-} from './forms';
+  FormState,
+} from "./forms";
 
 // =============================================================================
 // STORE BASE TYPES
@@ -76,8 +76,8 @@ import type {
 /**
  * Generic store action type
  */
-export type StoreAction<T = any> = T extends (...args: infer A) => infer R 
-  ? (...args: A) => R 
+export type StoreAction<T = any> = T extends (...args: infer A) => infer R
+  ? (...args: A) => R
   : never;
 
 /**
@@ -93,7 +93,9 @@ export type StoreSubscriber<T> = (state: T, prevState: T) => void | void;
 /**
  * Store middleware type
  */
-export type StoreMiddleware<T> = (config: any) => (set: any, get: any, api: any) => T;
+export type StoreMiddleware<T> = (
+  config: any
+) => (set: any, get: any, api: any) => T;
 
 /**
  * Store persist configuration
@@ -122,6 +124,93 @@ export interface StorePersistConfig<T> {
 // =============================================================================
 
 /**
+ * App store state
+ */
+export interface AppStoreState {
+  // User and authentication
+  user: User | null;
+  isAuthenticated: boolean;
+
+  // App state
+  theme: Theme;
+  sidebarCollapsed: boolean;
+  currentView: ViewType;
+
+  // UI state
+  searchOpen: boolean;
+  modalOpen: boolean;
+  modalType: string | null;
+  modalData: any | null;
+
+  // Notifications
+  notifications: any[];
+
+  // Preferences
+  preferences: {
+    theme: Theme;
+    language: string;
+    notifications: {
+      email: boolean;
+      push: boolean;
+      desktop: boolean;
+    };
+  };
+
+  // Loading and error states
+  loading: {
+    user: boolean;
+    app: boolean;
+  };
+  error: ApiError | null;
+}
+
+/**
+ * App store actions
+ */
+export interface AppStoreActions {
+  setUser: (user: User | null) => void;
+  login: (credentials: { email: string; password: string }) => Promise<void>;
+  logout: () => Promise<void>;
+  loadUser: () => Promise<void>;
+  setTheme: (theme: Theme) => void;
+  toggleSidebar: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+  setCurrentView: (view: ViewType) => void;
+  setSearchOpen: (open: boolean) => void;
+  toggleSearch: () => void;
+  setModalOpen: (
+    open: boolean,
+    type: string | null,
+    data: any | null
+  ) => void;
+  showNotification: (notification: any) => void;
+  hideNotification: (id: string) => void;
+  updatePreferences: (
+    preferences: Partial<AppStoreState["preferences"]>
+  ) => void;
+  setLoading: (key: keyof AppStoreState["loading"], loading: boolean) => void;
+  setError: (error: ApiError | null) => void;
+  clearError: () => void;
+}
+
+/**
+ * App store selectors
+ */
+export interface AppStoreSelectors {
+  getNotificationCount: () => number;
+  hasUnreadNotifications: () => boolean;
+  isDarkMode: () => boolean;
+}
+
+/**
+ * App store combined type
+ */
+export interface AppStore
+  extends AppStoreState,
+    AppStoreActions,
+    AppStoreSelectors {}
+
+/**
  * Global application state
  */
 export interface AppState {
@@ -130,18 +219,18 @@ export interface AppState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: ApiError | null;
-  
+
   // UI state
   theme: Theme;
   sidebarCollapsed: boolean;
   currentView: ViewType;
   notifications: NotificationState;
   modals: ModalState;
-  
+
   // Preferences and settings
   preferences: AppPreferences;
   config: AppConfig;
-  
+
   // Loading states
   loading: {
     user: boolean;
@@ -160,13 +249,17 @@ export interface AppActions {
   login: (credentials: { email: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
-  register: (userData: { name: string; email: string; password: string }) => Promise<void>;
-  
+  register: (userData: {
+    name: string;
+    email: string;
+    password: string;
+  }) => Promise<void>;
+
   // User
   loadUser: () => Promise<void>;
   updateUser: (userData: Partial<User>) => Promise<void>;
   updatePreferences: (preferences: Partial<AppPreferences>) => void;
-  
+
   // UI
   setTheme: (theme: Theme) => void;
   toggleSidebar: () => void;
@@ -175,13 +268,13 @@ export interface AppActions {
   hideNotification: (id: string) => void;
   showModal: (modal: ShowModalPayload) => void;
   hideModal: (id: string) => void;
-  
+
   // Configuration
   updateConfig: (config: Partial<AppConfig>) => void;
   resetConfig: () => void;
-  
+
   // General
-  setLoading: (key: keyof AppState['loading'], loading: boolean) => void;
+  setLoading: (key: keyof AppState["loading"], loading: boolean) => void;
   setError: (error: ApiError | null) => void;
   clearError: () => void;
 }
@@ -205,9 +298,9 @@ export interface TaskStoreState extends TaskState {
   cache: Record<TaskId, AppTask>;
   batchOperations: {
     [operationId: string]: {
-      type: 'create' | 'update' | 'delete' | 'bulk';
+      type: "create" | "update" | "delete" | "bulk";
       data: any;
-      status: 'pending' | 'processing' | 'completed' | 'failed';
+      status: "pending" | "processing" | "completed" | "failed";
       progress: number;
       result?: TaskBatchResult;
     };
@@ -223,7 +316,7 @@ export interface TaskStoreState extends TaskState {
     hasDeadline: boolean;
   };
   view: {
-    type: TaskView['type'];
+    type: TaskView["type"];
     groupBy?: TaskGroupBy;
     showCompleted: boolean;
     compactMode: boolean;
@@ -238,18 +331,23 @@ export interface TaskStoreActions {
   loadTasks: (params?: TaskQueryParams) => Promise<void>;
   loadTaskById: (taskId: TaskId) => Promise<AppTask | null>;
   refreshTasks: () => Promise<void>;
-  
+
   // CRUD operations
   createTask: (data: CreateTaskData) => Promise<AppTask>;
   updateTask: (data: UpdateTaskData) => Promise<AppTask>;
   deleteTask: (taskId: TaskId) => Promise<void>;
   duplicateTask: (taskId: TaskId) => Promise<AppTask>;
-  
+
   // Batch operations
-  batchUpdateTasks: (data: Partial<UpdateTaskData> & { taskIds: TaskId[] }) => Promise<TaskBatchResult>;
+  batchUpdateTasks: (
+    data: Partial<UpdateTaskData> & { taskIds: TaskId[] }
+  ) => Promise<TaskBatchResult>;
   batchDeleteTasks: (taskIds: TaskId[]) => Promise<TaskBatchResult>;
-  batchMoveTasks: (taskIds: TaskId[], listId: ListId) => Promise<TaskBatchResult>;
-  
+  batchMoveTasks: (
+    taskIds: TaskId[],
+    listId: ListId
+  ) => Promise<TaskBatchResult>;
+
   // Selection
   selectTask: (taskId: TaskId) => void;
   selectMultipleTasks: (taskIds: TaskId[]) => void;
@@ -258,10 +356,13 @@ export interface TaskStoreActions {
   selectAllVisible: () => void;
   selectCompletedTasks: () => void;
   selectOverdueTasks: () => void;
-  
+
   // Filters and search
   setSearchQuery: (query: string) => void;
-  setFilter: <K extends keyof TaskStoreState['filters']>(key: K, value: TaskStoreState['filters'][K]) => void;
+  setFilter: <K extends keyof TaskStoreState["filters"]>(
+    key: K,
+    value: TaskStoreState["filters"][K]
+  ) => void;
   clearFilters: () => void;
   setDateRange: (range: DateRange) => void;
   addListFilter: (listId: ListId) => void;
@@ -272,23 +373,32 @@ export interface TaskStoreActions {
   removePriorityFilter: (priority: Priority) => void;
   addLabelFilter: (labelId: LabelId) => void;
   removeLabelFilter: (labelId: LabelId) => void;
-  
+
   // View configuration
-  setViewType: (type: TaskView['type']) => void;
+  setViewType: (type: TaskView["type"]) => void;
   setGroupBy: (groupBy: TaskGroupBy | undefined) => void;
   toggleCompletedTasks: () => void;
   toggleCompactMode: () => void;
-  
+
   // State management
   setCurrentTask: (task: AppTask | null) => void;
   updateTaskInCache: (task: AppTask) => void;
   removeTaskFromCache: (taskId: TaskId) => void;
   clearCache: () => void;
-  
+
   // UI actions
-  startBatchOperation: (type: TaskStoreState['batchOperations'][string]['type'], data: any) => string;
-  updateBatchOperation: (operationId: string, updates: Partial<TaskStoreState['batchOperations'][string]>) => void;
-  completeBatchOperation: (operationId: string, result?: TaskBatchResult) => void;
+  startBatchOperation: (
+    type: TaskStoreState["batchOperations"][string]["type"],
+    data: any
+  ) => string;
+  updateBatchOperation: (
+    operationId: string,
+    updates: Partial<TaskStoreState["batchOperations"][string]>
+  ) => void;
+  completeBatchOperation: (
+    operationId: string,
+    result?: TaskBatchResult
+  ) => void;
   cancelBatchOperation: (operationId: string) => void;
 }
 
@@ -301,43 +411,58 @@ export interface TaskStoreSelectors {
   getCurrentTask: StoreSelector<TaskStoreState, AppTask | null>;
   getSelectedTasks: StoreSelector<TaskStoreState, AppTask[]>;
   getSelectedTaskIds: StoreSelector<TaskStoreState, TaskId[]>;
-  
+
   // Filtered selectors
   getFilteredTasks: StoreSelector<TaskStoreState, AppTask[]>;
   getCompletedTasks: StoreSelector<TaskStoreState, AppTask[]>;
   getOverdueTasks: StoreSelector<TaskStoreState, AppTask[]>;
   getTodaysTasks: StoreSelector<TaskStoreState, AppTask[]>;
-  getTasksByList: StoreSelector<ListId, StoreSelector<TaskStoreState, AppTask[]>>;
-  getTasksByStatus: StoreSelector<TaskStatus, StoreSelector<TaskStoreState, AppTask[]>>;
-  getTasksByPriority: StoreSelector<Priority, StoreSelector<TaskStoreState, AppTask[]>>;
-  
+  getTasksByList: StoreSelector<
+    ListId,
+    StoreSelector<TaskStoreState, AppTask[]>
+  >;
+  getTasksByStatus: StoreSelector<
+    TaskStatus,
+    StoreSelector<TaskStoreState, AppTask[]>
+  >;
+  getTasksByPriority: StoreSelector<
+    Priority,
+    StoreSelector<TaskStoreState, AppTask[]>
+  >;
+
   // Computed selectors
   getTaskCount: StoreSelector<TaskStoreState, number>;
   getCompletedTaskCount: StoreSelector<TaskStoreState, number>;
   getOverdueTaskCount: StoreSelector<TaskStoreState, number>;
   getFilterCount: StoreSelector<TaskStoreState, number>;
   getHasActiveFilters: StoreSelector<TaskStoreState, boolean>;
-  
+
   // View selectors
   getGroupedTasks: StoreSelector<TaskStoreState, Record<string, AppTask[]>>;
   getSortedTasks: StoreSelector<TaskStoreState, AppTask[]>;
-  
+
   // State selectors
   getIsLoading: StoreSelector<TaskStoreState, boolean>;
   getIsCreating: StoreSelector<TaskStoreState, boolean>;
   getIsUpdating: StoreSelector<TaskStoreState, boolean>;
   getIsDeleting: StoreSelector<TaskStoreState, boolean>;
   getError: StoreSelector<TaskStoreState, ApiError | null>;
-  
+
   // Batch operation selectors
   getActiveBatchOperations: StoreSelector<TaskStoreState, string[]>;
-  getBatchOperationProgress: StoreSelector<string, StoreSelector<TaskStoreState, number>>;
+  getBatchOperationProgress: StoreSelector<
+    string,
+    StoreSelector<TaskStoreState, number>
+  >;
 }
 
 /**
  * Task store combined type
  */
-export interface TaskStore extends TaskStoreState, TaskStoreActions, TaskStoreSelectors {}
+export interface TaskStore
+  extends TaskStoreState,
+    TaskStoreActions,
+    TaskStoreSelectors {}
 
 // =============================================================================
 // LIST STORE TYPES
@@ -364,40 +489,40 @@ export interface ListStoreActions {
   loadLists: (params?: ListQueryParams) => Promise<void>;
   loadListById: (listId: ListId) => Promise<AppList | null>;
   refreshLists: () => Promise<void>;
-  
+
   // CRUD operations
   createList: (data: CreateListData) => Promise<AppList>;
   updateList: (data: UpdateListData) => Promise<AppList>;
   deleteList: (listId: ListId) => Promise<void>;
   duplicateList: (listId: ListId) => Promise<AppList>;
-  
+
   // Selection
   selectList: (listId: ListId) => void;
   selectMultipleLists: (listIds: ListId[]) => void;
   deselectList: (listId: ListId) => void;
   clearSelection: () => void;
-  
+
   // Current list
   setCurrentList: (list: AppList | null) => void;
   switchList: (listId: ListId) => void;
   goBack: () => void;
   goForward: () => void;
-  
+
   // Favorites
   addToFavorites: (listId: ListId) => void;
   removeFromFavorites: (listId: ListId) => void;
   toggleFavorite: (listId: ListId) => void;
-  
+
   // Recent access
   addToRecent: (listId: ListId) => void;
   clearRecent: () => void;
-  
+
   // Search and filtering
   setSearchQuery: (query: string) => void;
   setGlobalView: (view: ListGlobalView) => void;
   toggleSidebar: () => void;
   resizeSidebar: (width: number) => void;
-  
+
   // State management
   updateListInCache: (list: AppList) => void;
   removeListFromCache: (listId: ListId) => void;
@@ -413,24 +538,27 @@ export interface ListStoreSelectors {
   getCurrentList: StoreSelector<ListStoreState, AppList | null>;
   getSelectedLists: StoreSelector<ListStoreState, AppList[]>;
   getSelectedListIds: StoreSelector<ListStoreState, ListId[]>;
-  
+
   // Filtered selectors
   getFavoriteLists: StoreSelector<ListStoreState, AppList[]>;
-  getRecentLists: StoreSelector<ListStoreState, Array<{ list: AppList; accessedAt: Date }>>;
+  getRecentLists: StoreSelector<
+    ListStoreState,
+    Array<{ list: AppList; accessedAt: Date }>
+  >;
   getSharedLists: StoreSelector<ListStoreState, AppList[]>;
   getArchivedLists: StoreSelector<ListStoreState, AppList[]>;
   getSearchResults: StoreSelector<ListStoreState, AppList[]>;
-  
+
   // Computed selectors
   getListCount: StoreSelector<ListStoreState, number>;
   getFavoriteCount: StoreSelector<ListStoreState, number>;
   getRecentCount: StoreSelector<ListStoreState, number>;
   getHasSelection: StoreSelector<ListStoreState, boolean>;
-  
+
   // View selectors
   getVisibleLists: StoreSelector<ListStoreState, AppList[]>;
   getSortedLists: StoreSelector<ListStoreState, AppList[]>;
-  
+
   // State selectors
   getIsLoading: StoreSelector<ListStoreState, boolean>;
   getIsCreating: StoreSelector<ListStoreState, boolean>;
@@ -442,7 +570,10 @@ export interface ListStoreSelectors {
 /**
  * List store combined type
  */
-export interface ListStore extends ListStoreState, ListStoreActions, ListStoreSelectors {}
+export interface ListStore
+  extends ListStoreState,
+    ListStoreActions,
+    ListStoreSelectors {}
 
 // =============================================================================
 // LABEL STORE TYPES
@@ -473,28 +604,28 @@ export interface LabelStoreActions {
   loadLabels: () => Promise<void>;
   loadLabelById: (labelId: LabelId) => Promise<Label | null>;
   refreshLabels: () => Promise<void>;
-  
+
   // CRUD operations
   createLabel: (data: CreateLabelData) => Promise<Label>;
   updateLabel: (data: UpdateLabelData) => Promise<Label>;
   deleteLabel: (labelId: LabelId) => Promise<void>;
   duplicateLabel: (labelId: LabelId) => Promise<Label>;
-  
+
   // Selection
   selectLabel: (labelId: LabelId) => void;
   selectMultipleLabels: (labelIds: LabelId[]) => void;
   deselectLabel: (labelId: LabelId) => void;
   clearSelection: () => void;
-  
+
   // Current label
   setCurrentLabel: (label: Label | null) => void;
-  
+
   // Search and filtering
   setSearchQuery: (query: string) => void;
   getLabelsByColor: (color: string) => Label[];
   getMostUsedLabels: (limit?: number) => Label[];
   getRecentlyUsedLabels: (limit?: number) => Label[];
-  
+
   // State management
   updateLabelInCache: (label: Label) => void;
   removeLabelFromCache: (labelId: LabelId) => void;
@@ -512,20 +643,29 @@ export interface LabelStoreSelectors {
   getCurrentLabel: StoreSelector<LabelStoreState, Label | null>;
   getSelectedLabels: StoreSelector<LabelStoreState, Label[]>;
   getSelectedLabelIds: StoreSelector<LabelStoreState, LabelId[]>;
-  
+
   // Filtered selectors
   getSearchResults: StoreSelector<LabelStoreState, Label[]>;
-  getLabelsByColor: StoreSelector<string, StoreSelector<LabelStoreState, Label[]>>;
-  getMostUsedLabels: StoreSelector<number, StoreSelector<LabelStoreState, Label[]>>;
-  getRecentlyUsedLabels: StoreSelector<number, StoreSelector<LabelStoreState, Label[]>>;
-  
+  getLabelsByColor: StoreSelector<
+    string,
+    StoreSelector<LabelStoreState, Label[]>
+  >;
+  getMostUsedLabels: StoreSelector<
+    number,
+    StoreSelector<LabelStoreState, Label[]>
+  >;
+  getRecentlyUsedLabels: StoreSelector<
+    number,
+    StoreSelector<LabelStoreState, Label[]>
+  >;
+
   // Computed selectors
   getLabelCount: StoreSelector<LabelStoreState, number>;
   getSelectedCount: StoreSelector<LabelStoreState, number>;
   getHasSelection: StoreSelector<LabelStoreState, boolean>;
   getColorPalette: StoreSelector<LabelStoreState, string[]>;
   getIconLibrary: StoreSelector<LabelStoreState, string[]>;
-  
+
   // State selectors
   getIsLoading: StoreSelector<LabelStoreState, boolean>;
   getIsCreating: StoreSelector<LabelStoreState, boolean>;
@@ -537,7 +677,10 @@ export interface LabelStoreSelectors {
 /**
  * Label store combined type
  */
-export interface LabelStore extends LabelStoreState, LabelStoreActions, LabelStoreSelectors {}
+export interface LabelStore
+  extends LabelStoreState,
+    LabelStoreActions,
+    LabelStoreSelectors {}
 
 // =============================================================================
 // FORM STORE TYPES
@@ -550,23 +693,23 @@ export interface FormStoreState {
   // Task forms
   taskForms: Record<string, TaskFormState>;
   currentTaskFormId: string | null;
-  
+
   // List forms
   listForms: Record<string, ListFormState>;
   currentListFormId: string | null;
-  
+
   // User forms
   userForm: FormState<UserFormData> | null;
   passwordForm: FormState<PasswordChangeFormData> | null;
-  
+
   // Label forms
   labelForms: Record<string, FormState<LabelFormData>>;
   currentLabelFormId: string | null;
-  
+
   // General forms
   generalForms: Record<string, FormState<Record<string, any>>>;
   currentGeneralFormId: string | null;
-  
+
   // Auto-save state
   autoSaveEnabled: boolean;
   autoSaveInterval: number;
@@ -579,35 +722,50 @@ export interface FormStoreState {
  */
 export interface FormStoreActions {
   // Task form management
-  createTaskForm: (id: string, initialData?: Partial<TaskFormData>, config?: TaskFormConfig) => void;
+  createTaskForm: (
+    id: string,
+    initialData?: Partial<TaskFormData>,
+    config?: TaskFormConfig
+  ) => void;
   updateTaskForm: (id: string, data: Partial<TaskFormData>) => void;
   deleteTaskForm: (id: string) => void;
   setCurrentTaskForm: (id: string | null) => void;
-  
+
   // List form management
-  createListForm: (id: string, initialData?: Partial<ListFormData>, config?: ListFormConfig) => void;
+  createListForm: (
+    id: string,
+    initialData?: Partial<ListFormData>,
+    config?: ListFormConfig
+  ) => void;
   updateListForm: (id: string, data: Partial<ListFormData>) => void;
   deleteListForm: (id: string) => void;
   setCurrentListForm: (id: string | null) => void;
-  
+
   // User form management
   initUserForm: (initialData: UserFormData) => void;
   updateUserForm: (data: Partial<UserFormData>) => void;
   clearUserForm: () => void;
-  
+
   // Label form management
-  createLabelForm: (id: string, initialData?: Partial<LabelFormData>, config?: LabelFormConfig) => void;
+  createLabelForm: (
+    id: string,
+    initialData?: Partial<LabelFormData>,
+    config?: LabelFormConfig
+  ) => void;
   updateLabelForm: (id: string, data: Partial<LabelFormData>) => void;
   deleteLabelForm: (id: string) => void;
   setCurrentLabelForm: (id: string | null) => void;
-  
+
   // Auto-save management
   enableAutoSave: (interval: number) => void;
   disableAutoSave: () => void;
-  saveForm: (formId: string, formType: 'task' | 'list' | 'label' | 'user') => Promise<void>;
+  saveForm: (
+    formId: string,
+    formType: "task" | "list" | "label" | "user"
+  ) => Promise<void>;
   scheduleSave: (formId: string) => void;
   clearPendingSave: (formId: string) => void;
-  
+
   // General form management
   createGeneralForm: (id: string, initialData: Record<string, any>) => void;
   updateGeneralForm: (id: string, data: Record<string, any>) => void;
@@ -620,29 +778,56 @@ export interface FormStoreActions {
  */
 export interface FormStoreSelectors {
   // Task form selectors
-  getTaskForm: StoreSelector<string, StoreSelector<FormStoreState, TaskFormState | undefined>>;
+  getTaskForm: StoreSelector<
+    string,
+    StoreSelector<FormStoreState, TaskFormState | undefined>
+  >;
   getCurrentTaskForm: StoreSelector<FormStoreState, TaskFormState | null>;
   getAllTaskForms: StoreSelector<FormStoreState, Record<string, TaskFormState>>;
-  
+
   // List form selectors
-  getListForm: StoreSelector<string, StoreSelector<FormStoreState, ListFormState | undefined>>;
+  getListForm: StoreSelector<
+    string,
+    StoreSelector<FormStoreState, ListFormState | undefined>
+  >;
   getCurrentListForm: StoreSelector<FormStoreState, ListFormState | null>;
   getAllListForms: StoreSelector<FormStoreState, Record<string, ListFormState>>;
-  
+
   // User form selectors
   getUserForm: StoreSelector<FormStoreState, FormState<UserFormData> | null>;
-  getPasswordForm: StoreSelector<FormStoreState, FormState<PasswordChangeFormData> | null>;
-  
+  getPasswordForm: StoreSelector<
+    FormStoreState,
+    FormState<PasswordChangeFormData> | null
+  >;
+
   // Label form selectors
-  getLabelForm: StoreSelector<string, StoreSelector<FormStoreState, FormState<LabelFormData> | undefined>>;
-  getCurrentLabelForm: StoreSelector<FormStoreState, FormState<LabelFormData> | null>;
-  getAllLabelForms: StoreSelector<FormStoreState, Record<string, FormState<LabelFormData>>>;
-  
+  getLabelForm: StoreSelector<
+    string,
+    StoreSelector<FormStoreState, FormState<LabelFormData> | undefined>
+  >;
+  getCurrentLabelForm: StoreSelector<
+    FormStoreState,
+    FormState<LabelFormData> | null
+  >;
+  getAllLabelForms: StoreSelector<
+    FormStoreState,
+    Record<string, FormState<LabelFormData>>
+  >;
+
   // General form selectors
-  getGeneralForm: StoreSelector<string, StoreSelector<FormStoreState, FormState<Record<string, any>> | undefined>>;
-  getCurrentGeneralForm: StoreSelector<FormStoreState, FormState<Record<string, any>> | null>;
-  getAllGeneralForms: StoreSelector<FormStoreState, Record<string, FormState<Record<string, any>>>>;
-  
+  getGeneralForm: StoreSelector<
+    string,
+    StoreSelector<FormStoreState, FormState<Record<string, any>> | undefined>
+  >;
+  getCurrentGeneralForm: StoreSelector<
+    FormStoreState,
+    FormState<Record<string, any>> | null
+  >;
+  getAllGeneralForms: StoreSelector<
+    FormStoreState,
+    Record<string, FormState<Record<string, any>>>
+  >;
+
   // Auto-save selectors
   getAutoSaveEnabled: StoreSelector<FormStoreState, boolean>;
   getAutoSaveInterval: StoreSelector<FormStoreState, number>;
@@ -653,7 +838,10 @@ export interface FormStoreSelectors {
 /**
  * Form store combined type
  */
-export interface FormStore extends FormStoreState, FormStoreActions, FormStoreSelectors {}
+export interface FormStore
+  extends FormStoreState,
+    FormStoreActions,
+    FormStoreSelectors {}
 
 // =============================================================================
 // NOTIFICATION STORE TYPES
@@ -666,7 +854,13 @@ export interface NotificationState {
   notifications: AppNotification[];
   unreadCount: number;
   maxNotifications: number;
-  position: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top-center' | 'bottom-center';
+  position:
+    | "top-right"
+    | "top-left"
+    | "bottom-right"
+    | "bottom-left"
+    | "top-center"
+    | "bottom-center";
   showProgress: boolean;
   pauseOnHover: boolean;
   autoClose: boolean;
@@ -678,7 +872,7 @@ export interface NotificationState {
  */
 export interface AppNotification {
   id: string;
-  type: 'success' | 'error' | 'warning' | 'info' | 'reminder';
+  type: "success" | "error" | "warning" | "info" | "reminder";
   title: string;
   message: string;
   data?: Record<string, any>;
@@ -698,7 +892,7 @@ export interface AppNotification {
  * Show notification payload
  */
 export interface ShowNotificationPayload {
-  type: AppNotification['type'];
+  type: AppNotification["type"];
   title: string;
   message: string;
   duration?: number;
@@ -720,11 +914,11 @@ export interface NotificationStoreActions {
   markAllAsRead: () => void;
   clearNotification: (id: string) => void;
   clearAll: () => void;
-  clearByType: (type: AppNotification['type']) => void;
+  clearByType: (type: AppNotification["type"]) => void;
   clearExpired: () => void;
-  
+
   // Configuration
-  setPosition: (position: NotificationState['position']) => void;
+  setPosition: (position: NotificationState["position"]) => void;
   setMaxNotifications: (max: number) => void;
   setAutoClose: (enabled: boolean, duration?: number) => void;
   setShowProgress: (show: boolean) => void;
@@ -738,17 +932,34 @@ export interface NotificationStoreSelectors {
   getNotifications: StoreSelector<NotificationState, AppNotification[]>;
   getUnreadNotifications: StoreSelector<NotificationState, AppNotification[]>;
   getVisibleNotifications: StoreSelector<NotificationState, AppNotification[]>;
-  getNotificationById: StoreSelector<string, StoreSelector<NotificationState, AppNotification | undefined>>;
+  getNotificationById: StoreSelector<
+    string,
+    StoreSelector<NotificationState, AppNotification | undefined>
+  >;
   getUnreadCount: StoreSelector<NotificationState, number>;
   getHasNotifications: StoreSelector<NotificationState, boolean>;
   getHasUnread: StoreSelector<NotificationState, boolean>;
-  getConfig: StoreSelector<NotificationState, Pick<NotificationState, 'position' | 'maxNotifications' | 'showProgress' | 'pauseOnHover' | 'autoClose' | 'defaultDuration'>>;
+  getConfig: StoreSelector<
+    NotificationState,
+    Pick<
+      NotificationState,
+      | "position"
+      | "maxNotifications"
+      | "showProgress"
+      | "pauseOnHover"
+      | "autoClose"
+      | "defaultDuration"
+    >
+  >;
 }
 
 /**
  * Notification store combined type
  */
-export interface NotificationStore extends NotificationState, NotificationStoreActions, NotificationStoreSelectors {}
+export interface NotificationStore
+  extends NotificationState,
+    NotificationStoreActions,
+    NotificationStoreSelectors {}
 
 // =============================================================================
 // MODAL STORE TYPES
@@ -773,12 +984,12 @@ export interface ModalState {
  */
 export interface AppModal {
   id: string;
-  type: 'dialog' | 'drawer' | 'bottom-sheet' | 'popover';
+  type: "dialog" | "drawer" | "bottom-sheet" | "popover";
   title?: string;
   description?: string;
   content: React.ReactNode;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
-  position?: 'center' | 'top' | 'bottom' | 'left' | 'right';
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | "full";
+  position?: "center" | "top" | "bottom" | "left" | "right";
   isOpen: boolean;
   isClosable: boolean;
   isDraggable?: boolean;
@@ -796,12 +1007,12 @@ export interface AppModal {
  */
 export interface ShowModalPayload {
   id?: string;
-  type: AppModal['type'];
+  type: AppModal["type"];
   title?: string;
   description?: string;
   content: React.ReactNode;
-  size?: AppModal['size'];
-  position?: AppModal['position'];
+  size?: AppModal["size"];
+  position?: AppModal["position"];
   isClosable?: boolean;
   isDraggable?: boolean;
   isResizable?: boolean;
@@ -816,19 +1027,25 @@ export interface ShowModalPayload {
  * Modal store actions
  */
 export interface ModalStoreActions {
-  // Modal management
+  /**
+   * Modal management
+   */
   showModal: (modal: ShowModalPayload) => string;
   hideModal: (id: string) => void;
   closeModal: (id: string) => void;
   closeActiveModal: () => void;
   closeAllModals: () => void;
-  
-  // Stack management
+
+  /**
+   * Stack management
+   */
   pushModal: (modal: ShowModalPayload) => string;
   popModal: () => string | null;
   clearModalStack: () => void;
-  
-  // Configuration
+
+  /**
+   * Configuration
+   */
   setCloseOnOverlayClick: (close: boolean) => void;
   setCloseOnEsc: (close: boolean) => void;
   setTrapFocus: (trap: boolean) => void;
@@ -842,16 +1059,28 @@ export interface ModalStoreSelectors {
   getModals: StoreSelector<ModalState, AppModal[]>;
   getActiveModal: StoreSelector<ModalState, AppModal | null>;
   getActiveModalId: StoreSelector<ModalState, string | null>;
-  getModalById: StoreSelector<string, StoreSelector<ModalState, AppModal | undefined>>;
+  getModalById: StoreSelector<
+    string,
+    StoreSelector<ModalState, AppModal | undefined>
+  >;
   getModalStack: StoreSelector<ModalState, string[]>;
   getIsAnyModalOpen: StoreSelector<ModalState, boolean>;
-  getConfig: StoreSelector<ModalState, Pick<ModalState, 'closeOnOverlayClick' | 'closeOnEsc' | 'trapFocus' | 'restoreFocus'>>;
+  getConfig: StoreSelector<
+    ModalState,
+    Pick<
+      ModalState,
+      "closeOnOverlayClick" | "closeOnEsc" | "trapFocus" | "restoreFocus"
+    >
+  >;
 }
 
 /**
  * Modal store combined type
  */
-export interface ModalStore extends ModalState, ModalStoreActions, ModalStoreSelectors {}
+export interface ModalStore
+  extends ModalState,
+    ModalStoreActions,
+    ModalStoreSelectors {}
 
 // =============================================================================
 // PREFERENCES AND USER CONFIG TYPES
@@ -865,9 +1094,9 @@ export interface AppPreferences {
   language: string;
   timezone: string;
   dateFormat: string;
-  timeFormat: '12h' | '24h';
-  weekStart: 'sunday' | 'monday';
-  
+  timeFormat: "12h" | "24h";
+  weekStart: "sunday" | "monday";
+
   // UI preferences
   sidebarCollapsed: boolean;
   defaultView: ViewType;
@@ -879,7 +1108,7 @@ export interface AppPreferences {
   showDueDates: boolean;
   showPriorities: boolean;
   showLabels: boolean;
-  
+
   // Notification preferences
   notifications: {
     email: boolean;
@@ -892,23 +1121,23 @@ export interface AppPreferences {
     weeklyDigest: boolean;
     achievementNotifications: boolean;
   };
-  
+
   // Privacy preferences
   privacy: {
-    profileVisibility: 'public' | 'private';
+    profileVisibility: "public" | "private";
     showEmail: boolean;
     showActivity: boolean;
     shareAnalytics: boolean;
     allowDataCollection: boolean;
   };
-  
+
   // Performance preferences
   performance: {
     enableAnimations: boolean;
     enableTransitions: boolean;
     reducedMotion: boolean;
     highContrast: boolean;
-    cacheSize: 'small' | 'medium' | 'large';
+    cacheSize: "small" | "medium" | "large";
     autoRefreshInterval: number;
     lazyLoading: boolean;
   };
@@ -1059,7 +1288,7 @@ export interface LabelFormValidationRules {
  * Validation rule
  */
 export interface ValidationRule {
-  type: 'required' | 'minLength' | 'maxLength' | 'pattern' | 'custom';
+  type: "required" | "minLength" | "maxLength" | "pattern" | "custom";
   value?: any;
   message: string;
   custom?: (value: any, formData?: Record<string, any>) => boolean | string;

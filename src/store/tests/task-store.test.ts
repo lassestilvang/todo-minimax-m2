@@ -4,8 +4,6 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
-import { createTestDatabaseAPI, TestDatabaseManager } from '../../lib/db/test-utils';
-import { TEST_DATA } from '../../test/setup';
 
 // Mock the task store creation
 const createMockTaskStore = () => {
@@ -36,14 +34,20 @@ const createMockTaskStore = () => {
     cache: {}
   };
 
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
   const actions = {
     // Task CRUD operations
     createTask: async (taskData: any) => {
+      // Add small delay to ensure different timestamps
+      await delay(1);
       const task = {
-        id: `task-${Date.now()}`,
+        id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         ...taskData,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: taskData.createdAt || new Date(),
+        updatedAt: new Date(),
+        status: taskData.status || 'todo',
+        priority: taskData.priority || 'None'
       };
       state.tasks.push(task);
       state.cache[task.id] = task;
@@ -53,6 +57,8 @@ const createMockTaskStore = () => {
     updateTask: async (updateData: any) => {
       const taskIndex = state.tasks.findIndex(t => t.id === updateData.id);
       if (taskIndex >= 0) {
+        // Add small delay to ensure different timestamps
+        await delay(1);
         state.tasks[taskIndex] = {
           ...state.tasks[taskIndex],
           ...updateData,
@@ -144,11 +150,33 @@ const createMockTaskStore = () => {
 
       // Apply sorting
       filtered.sort((a, b) => {
-        const aValue = a[state.view.sortBy as keyof typeof a];
-        const bValue = b[state.view.sortBy as keyof typeof b];
+        const sortBy = state.view.sortBy;
+        let aValue: any = a[sortBy as keyof typeof a];
+        let bValue: any = b[sortBy as keyof typeof b];
+
+        // Handle date sorting
+        if (sortBy === 'createdAt' || sortBy === 'updatedAt') {
+          aValue = aValue.getTime();
+          bValue = bValue.getTime();
+        }
+
+        // Handle priority sorting (High > Medium > Low > None)
+        if (sortBy === 'priority') {
+          const priorityOrder = { 'High': 4, 'Medium': 3, 'Low': 2, 'None': 1 };
+          aValue = priorityOrder[aValue as keyof typeof priorityOrder] || 0;
+          bValue = priorityOrder[bValue as keyof typeof priorityOrder] || 0;
+          
+          // For priority, ascending means highest priority first
+          if (state.view.sortOrder === 'desc') {
+            return aValue - bValue; // Low to high for descending
+          } else {
+            return bValue - aValue; // High to low for ascending
+          }
+        }
         
+        // Standard comparison for ascending/descending
         if (state.view.sortOrder === 'desc') {
-          return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+          return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
         } else {
           return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
         }
@@ -256,28 +284,7 @@ const createMockTaskStore = () => {
 };
 
 describe('TaskStore Logic Tests', () => {
-  let testAPI: ReturnType<typeof createTestDatabaseAPI>;
-  let testDB: TestDatabaseManager;
   let taskStore: ReturnType<typeof createMockTaskStore>;
-
-  beforeAll(async () => {
-    testDB = new TestDatabaseManager({
-      path: './test-data/task-store-test.db',
-      verbose: false
-    });
-    
-    testAPI = createTestDatabaseAPI({
-      path: testDB.getPath(),
-      verbose: false
-    });
-    
-    await testAPI.api.runMigrations();
-    await testDB.initialize();
-  });
-
-  afterAll(async () => {
-    await testDB.cleanup();
-  });
 
   beforeEach(() => {
     taskStore = createMockTaskStore();

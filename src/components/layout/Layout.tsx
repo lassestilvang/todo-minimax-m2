@@ -1,23 +1,23 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { 
-  Home, 
-  Search, 
-  Plus, 
-  Settings, 
-  Menu, 
+import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Home,
+  Search,
+  Plus,
+  Settings,
+  Menu,
   X,
   Calendar,
   Clock,
   Filter,
-  Star
-} from 'lucide-react';
-import { useAppStore } from '@/store/app-store';
-import { useTasks } from '@/store/hooks';
-import { useLists } from '@/store/hooks';
+  Star,
+} from "lucide-react";
+import { useAppStore } from "@/store/app-store";
+import { useTasks } from "@/store/hooks";
+import { useLists } from "@/store/hooks";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -26,15 +26,15 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  
-  const { 
-    theme, 
-    sidebarCollapsed, 
+
+  const {
+    theme,
+    sidebarCollapsed,
     setSidebarCollapsed,
     currentView,
-    setCurrentView 
+    setCurrentView,
   } = useAppStore();
-  
+
   const { createTask } = useTasks();
   const { lists } = useLists();
 
@@ -45,62 +45,64 @@ export function Layout({ children }: LayoutProps) {
         setSidebarOpen(false);
       }
     };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const navigationItems = [
     {
-      id: 'today',
-      name: 'Today',
+      id: "today",
+      name: "Today",
       icon: Calendar,
-      view: 'today' as const,
+      view: "today" as const,
     },
     {
-      id: 'next7',
-      name: 'Next 7 Days',
+      id: "next7",
+      name: "Next 7 Days",
       icon: Clock,
-      view: 'next7' as const,
+      view: "next7" as const,
     },
     {
-      id: 'upcoming',
-      name: 'Upcoming',
+      id: "upcoming",
+      name: "Upcoming",
       icon: Calendar,
-      view: 'upcoming' as const,
+      view: "upcoming" as const,
     },
     {
-      id: 'all',
-      name: 'All Tasks',
+      id: "all",
+      name: "All Tasks",
       icon: Filter,
-      view: 'all' as const,
+      view: "all" as const,
     },
   ];
 
   const handleQuickAdd = () => {
     createTask({
-      name: 'New Task',
-      priority: 'none',
-      status: 'todo',
+      name: "New Task",
+      priority: "None",
+      listId: lists[0]?.id, // Use first available list or undefined
     });
   };
 
   return (
-    <div className={cn('min-h-screen bg-background', theme)}>
+    <div className={cn("min-h-screen bg-background", theme)}>
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-40 bg-black/50 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <div className={cn(
-        'fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-200 ease-in-out md:translate-x-0 md:static md:inset-0',
-        sidebarCollapsed ? 'md:w-16' : 'md:w-64',
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      )}>
+      <div
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-200 ease-in-out md:translate-x-0 md:static md:inset-0",
+          sidebarCollapsed ? "md:w-16" : "md:w-64",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
         <div className="flex h-full flex-col">
           {/* Sidebar Header */}
           <div className="flex h-16 items-center justify-between px-4 border-b">
@@ -127,7 +129,7 @@ export function Layout({ children }: LayoutProps) {
               variant="default"
             >
               <Plus className="h-4 w-4" />
-              {!sidebarCollapsed && 'Quick Add Task'}
+              {!sidebarCollapsed && "Quick Add Task"}
             </Button>
           </div>
 
@@ -144,10 +146,10 @@ export function Layout({ children }: LayoutProps) {
                 return (
                   <Button
                     key={item.id}
-                    variant={currentView === item.view ? 'secondary' : 'ghost'}
+                    variant={currentView === item.view ? "secondary" : "ghost"}
                     className={cn(
-                      'w-full justify-start gap-2',
-                      sidebarCollapsed && 'px-2'
+                      "w-full justify-start gap-2",
+                      sidebarCollapsed && "px-2"
                     )}
                     onClick={() => setCurrentView(item.view)}
                   >
@@ -167,19 +169,17 @@ export function Layout({ children }: LayoutProps) {
               </h3>
             )}
             <nav className="space-y-1">
-              {lists.map((list) => (
+              {lists.map((list: any) => (
                 <Button
                   key={list.id}
                   variant="ghost"
                   className={cn(
-                    'w-full justify-start gap-2',
-                    sidebarCollapsed && 'px-2'
+                    "w-full justify-start gap-2",
+                    sidebarCollapsed && "px-2"
                   )}
                   style={{ color: list.color }}
                 >
-                  <span className="text-sm">
-                    {list.emoji || '📋'}
-                  </span>
+                  <span className="text-sm">{list.emoji || "📋"}</span>
                   {!sidebarCollapsed && (
                     <div className="flex-1 text-left">
                       <div className="truncate">{list.name}</div>
@@ -198,22 +198,24 @@ export function Layout({ children }: LayoutProps) {
             <Button
               variant="ghost"
               className={cn(
-                'w-full justify-start gap-2',
-                sidebarCollapsed && 'px-2'
+                "w-full justify-start gap-2",
+                sidebarCollapsed && "px-2"
               )}
             >
               <Settings className="h-4 w-4" />
-              {!sidebarCollapsed && 'Settings'}
+              {!sidebarCollapsed && "Settings"}
             </Button>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className={cn(
-        'flex-1 flex flex-col transition-all duration-200',
-        sidebarCollapsed ? 'md:ml-16' : 'md:ml-64'
-      )}>
+      <div
+        className={cn(
+          "flex-1 flex flex-col transition-all duration-200",
+          sidebarCollapsed ? "md:ml-16" : "md:ml-64"
+        )}
+      >
         {/* Header */}
         <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex h-full items-center justify-between px-4">
@@ -241,7 +243,8 @@ export function Layout({ children }: LayoutProps) {
               {/* Page title */}
               <div>
                 <h1 className="text-lg font-semibold">
-                  {navigationItems.find(item => item.view === currentView)?.name || 'Dashboard'}
+                  {navigationItems.find((item) => item.view === currentView)
+                    ?.name || "Dashboard"}
                 </h1>
               </div>
             </div>
@@ -266,9 +269,7 @@ export function Layout({ children }: LayoutProps) {
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-auto">
-          <div className="container mx-auto p-4">
-            {children}
-          </div>
+          <div className="container mx-auto p-4">{children}</div>
         </main>
       </div>
 

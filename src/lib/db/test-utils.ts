@@ -1,22 +1,22 @@
 // Test Database Utilities and Fixtures for Daily Task Planner
 // Provides testing utilities, fixtures, and mock data for database testing
 
-import { v4 as uuidv4 } from 'uuid';
-import path from 'path';
-import fs from 'fs';
-import { DatabaseManager } from './index';
-import { 
-  User, 
-  List, 
-  Task, 
-  Label, 
-  Subtask, 
-  Reminder, 
+import { v4 as uuidv4 } from "uuid";
+import path from "path";
+import fs from "fs";
+import { DatabaseManager } from "./index";
+import {
+  User,
+  List,
+  Task,
+  Label,
+  Subtask,
+  Reminder,
   Attachment,
   TaskHistory,
   Priority,
-  TaskStatus 
-} from './types';
+  TaskStatus,
+} from "./types";
 
 export interface TestDatabaseConfig {
   path?: string;
@@ -28,11 +28,13 @@ export class TestDatabaseManager {
   private db: DatabaseManager;
   private isTestDb: boolean;
   private dbPath: string;
+  private config: TestDatabaseConfig;
 
   constructor(config: TestDatabaseConfig = {}) {
     this.dbPath = config.path || this.generateTestDbPath();
     this.isTestDb = true;
-    
+    this.config = config;
+
     this.db = DatabaseManager.getInstance({
       path: this.dbPath,
       timeout: config.timeout || 5000,
@@ -44,7 +46,7 @@ export class TestDatabaseManager {
    * Generate unique test database path
    */
   private generateTestDbPath(): string {
-    const testDir = path.join(process.cwd(), 'test-data');
+    const testDir = path.join(process.cwd(), "test-data");
     if (!fs.existsSync(testDir)) {
       fs.mkdirSync(testDir, { recursive: true });
     }
@@ -57,7 +59,37 @@ export class TestDatabaseManager {
    * Initialize test database
    */
   public async initialize(): Promise<void> {
-    await this.db.initialize();
+    try {
+      // Ensure database directory exists
+      if (!fs.existsSync(path.dirname(this.dbPath))) {
+        fs.mkdirSync(path.dirname(this.dbPath), { recursive: true });
+      }
+
+      // Remove existing database for clean test environment
+      if (fs.existsSync(this.dbPath)) {
+        fs.unlinkSync(this.dbPath);
+      }
+
+      // Create fresh instance
+      this.db = DatabaseManager.getInstance({
+        path: this.dbPath,
+        timeout: 5000,
+        verbose: false,
+      });
+
+      // Initialize and migrate the database
+      await this.db.initialize();
+      await this.db.runMigrations();
+
+      if (this.config.verbose) {
+        console.log("Test database migrated successfully");
+      }
+    } catch (migrationError) {
+      console.error("Migration also failed:", migrationError);
+      throw new Error(
+        `Failed to initialize test database: ${migrationError}`
+      );
+    }
   }
 
   /**
@@ -73,10 +105,17 @@ export class TestDatabaseManager {
   public async clean(): Promise<void> {
     // Clear all data but keep schema
     const tables = [
-      'task_history', 'attachments', 'reminders', 'subtasks', 
-      'task_labels', 'tasks', 'labels', 'lists', 'users'
+      "task_history",
+      "attachments",
+      "reminders",
+      "subtasks",
+      "task_labels",
+      "tasks",
+      "labels",
+      "lists",
+      "users",
     ];
-    
+
     for (const table of tables) {
       try {
         this.db.run(`DELETE FROM ${table}`);
@@ -91,7 +130,7 @@ export class TestDatabaseManager {
    */
   public async drop(): Promise<void> {
     this.db.close();
-    
+
     if (fs.existsSync(this.dbPath)) {
       fs.unlinkSync(this.dbPath);
     }
@@ -110,6 +149,13 @@ export class TestDatabaseManager {
   public async getStats() {
     return await this.db.getDatabaseStats();
   }
+
+  /**
+   * Cleanup test database
+   */
+  public async cleanup(): Promise<void> {
+    await this.drop();
+  }
 }
 
 export class TestDataFixtures {
@@ -119,13 +165,13 @@ export class TestDataFixtures {
   public static createUser(overrides: Partial<User> = {}): User {
     const user: User = {
       id: overrides.id || uuidv4(),
-      name: overrides.name || 'Test User',
-      email: overrides.email || 'test@example.com',
-      avatar: overrides.avatar || 'https://example.com/avatar.jpg',
+      name: overrides.name || "Test User",
+      email: overrides.email || "test@example.com",
+      avatar: overrides.avatar || "https://example.com/avatar.jpg",
       preferences: overrides.preferences || {
-        theme: 'light',
-        timezone: 'UTC',
-        dateFormat: 'MM/dd/yyyy',
+        theme: "light",
+        timezone: "UTC",
+        dateFormat: "MM/dd/yyyy",
       },
       createdAt: overrides.createdAt || new Date(),
       updatedAt: overrides.updatedAt || new Date(),
@@ -139,10 +185,13 @@ export class TestDataFixtures {
   public static createList(overrides: Partial<List> = {}): List {
     const list: List = {
       id: overrides.id || uuidv4(),
-      name: overrides.name || 'Test List',
-      color: overrides.color || '#3B82F6',
-      emoji: overrides.emoji || '📋',
+      name: overrides.name || "Test List",
+      color: overrides.color || "#3B82F6",
+      emoji: overrides.emoji || "📋",
       isDefault: overrides.isDefault || false,
+      isFavorite: overrides.isFavorite || false,
+      description: overrides.description,
+      position: overrides.position || 0,
       userId: overrides.userId || uuidv4(),
       createdAt: overrides.createdAt || new Date(),
       updatedAt: overrides.updatedAt || new Date(),
@@ -156,9 +205,9 @@ export class TestDataFixtures {
   public static createLabel(overrides: Partial<Label> = {}): Label {
     const label: Label = {
       id: overrides.id || uuidv4(),
-      name: overrides.name || 'Test Label',
-      icon: overrides.icon || '🏷️',
-      color: overrides.color || '#6B7280',
+      name: overrides.name || "Test Label",
+      icon: overrides.icon || "🏷️",
+      color: overrides.color || "#6B7280",
       userId: overrides.userId || uuidv4(),
       createdAt: overrides.createdAt || new Date(),
       updatedAt: overrides.updatedAt || new Date(),
@@ -172,14 +221,14 @@ export class TestDataFixtures {
   public static createTask(overrides: Partial<Task> = {}): Task {
     const task: Task = {
       id: overrides.id || uuidv4(),
-      name: overrides.name || 'Test Task',
-      description: overrides.description || 'This is a test task',
+      name: overrides.name || "Test Task",
+      description: overrides.description || "This is a test task",
       date: overrides.date,
       deadline: overrides.deadline,
-      estimate: overrides.estimate || '01:00',
+      estimate: overrides.estimate || "01:00",
       actualTime: overrides.actualTime,
-      priority: overrides.priority || 'Medium',
-      status: overrides.status || 'todo',
+      priority: overrides.priority || "Medium",
+      status: overrides.status || "todo",
       userId: overrides.userId || uuidv4(),
       listId: overrides.listId || uuidv4(),
       parentTaskId: overrides.parentTaskId,
@@ -198,7 +247,7 @@ export class TestDataFixtures {
   public static createSubtask(overrides: Partial<Subtask> = {}): Subtask {
     const subtask: Subtask = {
       id: overrides.id || uuidv4(),
-      name: overrides.name || 'Test Subtask',
+      name: overrides.name || "Test Subtask",
       isCompleted: overrides.isCompleted || false,
       taskId: overrides.taskId || uuidv4(),
       position: overrides.position || 0,
@@ -217,7 +266,7 @@ export class TestDataFixtures {
       taskId: overrides.taskId || uuidv4(),
       remindAt: overrides.remindAt || new Date(Date.now() + 3600000), // 1 hour from now
       isSent: overrides.isSent || false,
-      method: overrides.method || 'push',
+      method: overrides.method || "push",
       createdAt: overrides.createdAt || new Date(),
       updatedAt: overrides.updatedAt || new Date(),
     };
@@ -227,16 +276,20 @@ export class TestDataFixtures {
   /**
    * Create a test attachment
    */
-  public static createAttachment(overrides: Partial<Attachment> = {}): Attachment {
+  public static createAttachment(
+    overrides: Partial<Attachment> = {}
+  ): Attachment {
     const attachment: Attachment = {
       id: overrides.id || uuidv4(),
       taskId: overrides.taskId || uuidv4(),
-      filename: overrides.filename || 'test-file.pdf',
-      originalName: overrides.originalName || 'Test File.pdf',
-      mimeType: overrides.mimeType || 'application/pdf',
+      filename: overrides.filename || "test-file.pdf",
+      originalName: overrides.originalName || "Test File.pdf",
+      mimeType: overrides.mimeType || "application/pdf",
       size: overrides.size || 1024,
-      path: overrides.path || '/uploads/test-file.pdf',
+      path: overrides.path || "/uploads/test-file.pdf",
       uploadedAt: overrides.uploadedAt || new Date(),
+      createdAt: overrides.createdAt || new Date(),
+      updatedAt: overrides.updatedAt || new Date(),
     };
     return attachment;
   }
@@ -244,15 +297,22 @@ export class TestDataFixtures {
   /**
    * Create a test task history entry
    */
-  public static createTaskHistory(overrides: Partial<TaskHistory> = {}): TaskHistory {
+  public static createTaskHistory(
+    overrides: Partial<TaskHistory> = {}
+  ): TaskHistory {
     const history: TaskHistory = {
       id: overrides.id || uuidv4(),
       taskId: overrides.taskId || uuidv4(),
-      action: overrides.action || 'created',
+      action: overrides.action || "created",
       changedBy: overrides.changedBy || uuidv4(),
-      changes: overrides.changes || { field: 'name', oldValue: null, newValue: 'Test Task' },
-      description: overrides.description || 'Task created',
+      changes: overrides.changes || {
+        field: "name",
+        oldValue: null,
+        newValue: "Test Task",
+      },
+      description: overrides.description || "Task created",
       createdAt: overrides.createdAt || new Date(),
+      updatedAt: overrides.updatedAt || new Date(),
     };
     return history;
   }
@@ -270,72 +330,114 @@ export class TestDataFixtures {
     attachments: Attachment[];
     taskHistory: TaskHistory[];
   } {
-    const user1 = this.createUser({ name: 'John Doe', email: 'john@example.com' });
-    const user2 = this.createUser({ name: 'Jane Smith', email: 'jane@example.com' });
-    
-    const list1 = this.createList({ userId: user1.id, name: 'Personal', emoji: '🏠' });
-    const list2 = this.createList({ userId: user1.id, name: 'Work', emoji: '💼' });
-    const list3 = this.createList({ userId: user2.id, name: 'Study', emoji: '📚' });
-    
-    const label1 = this.createLabel({ userId: user1.id, name: 'Urgent', color: '#EF4444' });
-    const label2 = this.createLabel({ userId: user1.id, name: 'Bug', color: '#F59E0B' });
-    const label3 = this.createLabel({ userId: user2.id, name: 'Assignment', color: '#10B981' });
-    
+    const user1 = this.createUser({
+      name: "John Doe",
+      email: "john@example.com",
+    });
+    const user2 = this.createUser({
+      name: "Jane Smith",
+      email: "jane@example.com",
+    });
+
+    const list1 = this.createList({
+      userId: user1.id,
+      name: "Personal",
+      emoji: "🏠",
+    });
+    const list2 = this.createList({
+      userId: user1.id,
+      name: "Work",
+      emoji: "💼",
+    });
+    const list3 = this.createList({
+      userId: user2.id,
+      name: "Study",
+      emoji: "📚",
+    });
+
+    const label1 = this.createLabel({
+      userId: user1.id,
+      name: "Urgent",
+      color: "#EF4444",
+    });
+    const label2 = this.createLabel({
+      userId: user1.id,
+      name: "Bug",
+      color: "#F59E0B",
+    });
+    const label3 = this.createLabel({
+      userId: user2.id,
+      name: "Assignment",
+      color: "#10B981",
+    });
+
     const task1 = this.createTask({
       userId: user1.id,
       listId: list1.id,
-      name: 'Buy groceries',
-      description: 'Get milk, bread, and vegetables',
-      priority: 'Medium',
+      name: "Buy groceries",
+      description: "Get milk, bread, and vegetables",
+      priority: "Medium",
       date: new Date(),
     });
-    
+
     const task2 = this.createTask({
       userId: user1.id,
       listId: list2.id,
-      name: 'Fix login bug',
-      description: 'User cannot login with correct credentials',
-      priority: 'High',
-      status: 'in_progress',
+      name: "Fix login bug",
+      description: "User cannot login with correct credentials",
+      priority: "High",
+      status: "in_progress",
     });
-    
+
     const task3 = this.createTask({
       userId: user2.id,
       listId: list3.id,
-      name: 'Complete math assignment',
-      description: 'Chapter 5 exercises 1-20',
-      priority: 'High',
+      name: "Complete math assignment",
+      description: "Chapter 5 exercises 1-20",
+      priority: "High",
       deadline: new Date(Date.now() + 86400000), // Tomorrow
     });
-    
-    const subtask1 = this.createSubtask({ taskId: task1.id, name: 'Buy milk' });
-    const subtask2 = this.createSubtask({ taskId: task1.id, name: 'Buy bread' });
-    const subtask3 = this.createSubtask({ taskId: task1.id, name: 'Buy vegetables' });
-    
-    const reminder1 = this.createReminder({ taskId: task1.id, remindAt: new Date(Date.now() + 1800000) }); // 30 mins
-    const reminder2 = this.createReminder({ taskId: task3.id, remindAt: new Date(Date.now() + 7200000) }); // 2 hours
-    
+
+    const subtask1 = this.createSubtask({ taskId: task1.id, name: "Buy milk" });
+    const subtask2 = this.createSubtask({
+      taskId: task1.id,
+      name: "Buy bread",
+    });
+    const subtask3 = this.createSubtask({
+      taskId: task1.id,
+      name: "Buy vegetables",
+    });
+
+    const reminder1 = this.createReminder({
+      taskId: task1.id,
+      remindAt: new Date(Date.now() + 1800000),
+    }); // 30 mins
+    const reminder2 = this.createReminder({
+      taskId: task3.id,
+      remindAt: new Date(Date.now() + 7200000),
+    }); // 2 hours
+
     const attachment1 = this.createAttachment({
       taskId: task2.id,
-      filename: 'bug-report.pdf',
-      originalName: 'Bug Report.pdf',
+      filename: "bug-report.pdf",
+      originalName: "Bug Report.pdf",
       size: 2048,
     });
-    
+
     const history1 = this.createTaskHistory({
       taskId: task1.id,
-      action: 'created',
+      action: "created",
       changedBy: user1.id,
-      changes: { field: 'name', newValue: 'Buy groceries' },
-      description: 'Task created',
+      changes: { field: "name", newValue: "Buy groceries" },
+      description: "Task created",
     });
-    
+
     const history2 = this.createTaskHistory({
       taskId: task2.id,
-      action: 'status_changed',
+      action: "status_changed",
       changedBy: user1.id,
-      changes: { field: 'status', oldValue: 'todo', newValue: 'in_progress' },
-      description: 'Task status changed to in progress',
+      changes: { field: "status", oldValue: "todo", newValue: "in_progress" },
+      description: "Task status changed to in progress",
     });
 
     return {
@@ -355,7 +457,7 @@ export class TestDataFixtures {
    */
   public static createRecurringPattern(overrides: any = {}) {
     return {
-      type: overrides.type || 'weekly',
+      type: overrides.type || "weekly",
       interval: overrides.interval || 1,
       daysOfWeek: overrides.daysOfWeek || [1, 3, 5], // Mon, Wed, Fri
       endDate: overrides.endDate,
@@ -380,77 +482,125 @@ export class TestDataFixtures {
 
     // Generate users
     for (let i = 0; i < Math.ceil(count / 10); i++) {
-      data.users.push(this.createUser({
-        name: `Test User ${i + 1}`,
-        email: `user${i + 1}@test.com`,
-      }));
+      data.users.push(
+        this.createUser({
+          name: `Test User ${i + 1}`,
+          email: `user${i + 1}@test.com`,
+        })
+      );
     }
 
     // Generate lists
-    const listNames = ['Personal', 'Work', 'Study', 'Shopping', 'Health', 'Finance'];
+    const listNames = [
+      "Personal",
+      "Work",
+      "Study",
+      "Shopping",
+      "Health",
+      "Finance",
+    ];
     for (let i = 0; i < count; i++) {
-      data.lists.push(this.createList({
-        userId: data.users[Math.floor(Math.random() * data.users.length)].id,
-        name: listNames[Math.floor(Math.random() * listNames.length)] + ` ${i + 1}`,
-        color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-      }));
+      data.lists.push(
+        this.createList({
+          userId: data.users[Math.floor(Math.random() * data.users.length)].id,
+          name:
+            listNames[Math.floor(Math.random() * listNames.length)] +
+            ` ${i + 1}`,
+          color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+        })
+      );
     }
 
     // Generate labels
-    const labelNames = ['Urgent', 'Important', 'Bug', 'Feature', 'Documentation'];
+    const labelNames = [
+      "Urgent",
+      "Important",
+      "Bug",
+      "Feature",
+      "Documentation",
+    ];
     for (let i = 0; i < count; i++) {
-      data.labels.push(this.createLabel({
-        userId: data.users[Math.floor(Math.random() * data.users.length)].id,
-        name: labelNames[Math.floor(Math.random() * labelNames.length)] + ` ${i + 1}`,
-        color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-      }));
+      data.labels.push(
+        this.createLabel({
+          userId: data.users[Math.floor(Math.random() * data.users.length)].id,
+          name:
+            labelNames[Math.floor(Math.random() * labelNames.length)] +
+            ` ${i + 1}`,
+          color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+        })
+      );
     }
 
     // Generate tasks
-    const taskNames = ['Task', 'Bug', 'Feature', 'Improvement', 'Documentation'];
+    const taskNames = [
+      "Task",
+      "Bug",
+      "Feature",
+      "Improvement",
+      "Documentation",
+    ];
     for (let i = 0; i < count; i++) {
-      data.tasks.push(this.createTask({
-        userId: data.users[Math.floor(Math.random() * data.users.length)].id,
-        listId: data.lists[Math.floor(Math.random() * data.lists.length)].id,
-        name: `${taskNames[Math.floor(Math.random() * taskNames.length)]} ${i + 1}`,
-        description: `Description for task ${i + 1}`,
-        priority: ['High', 'Medium', 'Low', 'None'][Math.floor(Math.random() * 4)] as Priority,
-        status: ['todo', 'in_progress', 'done', 'archived'][Math.floor(Math.random() * 4)] as TaskStatus,
-      }));
+      data.tasks.push(
+        this.createTask({
+          userId: data.users[Math.floor(Math.random() * data.users.length)].id,
+          listId: data.lists[Math.floor(Math.random() * data.lists.length)].id,
+          name: `${taskNames[Math.floor(Math.random() * taskNames.length)]} ${
+            i + 1
+          }`,
+          description: `Description for task ${i + 1}`,
+          priority: ["High", "Medium", "Low", "None"][
+            Math.floor(Math.random() * 4)
+          ] as Priority,
+          status: ["todo", "in_progress", "done", "archived"][
+            Math.floor(Math.random() * 4)
+          ] as TaskStatus,
+        })
+      );
     }
 
     // Generate subtasks
     for (let i = 0; i < count * 2; i++) {
-      data.subtasks.push(this.createSubtask({
-        taskId: data.tasks[Math.floor(Math.random() * data.tasks.length)].id,
-        name: `Subtask ${i + 1}`,
-      }));
+      data.subtasks.push(
+        this.createSubtask({
+          taskId: data.tasks[Math.floor(Math.random() * data.tasks.length)].id,
+          name: `Subtask ${i + 1}`,
+        })
+      );
     }
 
     // Generate reminders
     for (let i = 0; i < count; i++) {
-      data.reminders.push(this.createReminder({
-        taskId: data.tasks[Math.floor(Math.random() * data.tasks.length)].id,
-        remindAt: new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000), // Next 7 days
-      }));
+      data.reminders.push(
+        this.createReminder({
+          taskId: data.tasks[Math.floor(Math.random() * data.tasks.length)].id,
+          remindAt: new Date(
+            Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000
+          ), // Next 7 days
+        })
+      );
     }
 
     // Generate attachments
     for (let i = 0; i < Math.floor(count / 2); i++) {
-      data.attachments.push(this.createAttachment({
-        taskId: data.tasks[Math.floor(Math.random() * data.tasks.length)].id,
-        filename: `file${i + 1}.pdf`,
-        originalName: `File ${i + 1}.pdf`,
-        size: Math.floor(Math.random() * 10000) + 1000, // 1KB - 10KB
-      }));
+      data.attachments.push(
+        this.createAttachment({
+          taskId: data.tasks[Math.floor(Math.random() * data.tasks.length)].id,
+          filename: `file${i + 1}.pdf`,
+          originalName: `File ${i + 1}.pdf`,
+          size: Math.floor(Math.random() * 10000) + 1000, // 1KB - 10KB
+        })
+      );
     }
 
     // Generate task history
     for (let i = 0; i < count; i++) {
-      data.taskHistory.push(this.createTaskHistory({
-        taskId: data.tasks[Math.floor(Math.random() * data.tasks.length)].id,
-        changedBy: data.users[Math.floor(Math.random() * data.users.length)].id,
-      }));
+      data.taskHistory.push(
+        this.createTaskHistory({
+          taskId: data.tasks[Math.floor(Math.random() * data.tasks.length)].id,
+          changedBy:
+            data.users[Math.floor(Math.random() * data.users.length)].id,
+        })
+      );
     }
 
     return data;
@@ -467,14 +617,25 @@ export class DatabaseTestHelpers {
   /**
    * Insert test data into database
    */
-  public async insertTestData(dataset: ReturnType<typeof TestDataFixtures.createTestDataset>): Promise<void> {
+  public async insertTestData(
+    dataset: ReturnType<typeof TestDataFixtures.createTestDataset>
+  ): Promise<void> {
+    // Helper function to convert Date to ISO string
+    const toISOString = (date: Date | undefined) =>
+      date ? date.toISOString() : null;
+
     // Insert users
     for (const user of dataset.users) {
       this.db.run(
-        'INSERT INTO users (id, name, email, avatar, preferences, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        "INSERT INTO users (id, name, email, avatar, preferences, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
         [
-          user.id, user.name, user.email, user.avatar, 
-          JSON.stringify(user.preferences), user.createdAt, user.updatedAt
+          user.id,
+          user.name,
+          user.email,
+          user.avatar,
+          JSON.stringify(user.preferences),
+          toISOString(user.createdAt),
+          toISOString(user.updatedAt),
         ]
       );
     }
@@ -482,10 +643,16 @@ export class DatabaseTestHelpers {
     // Insert lists
     for (const list of dataset.lists) {
       this.db.run(
-        'INSERT INTO lists (id, name, color, emoji, is_default, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        "INSERT INTO lists (id, name, color, emoji, is_default, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         [
-          list.id, list.name, list.color, list.emoji, 
-          list.isDefault ? 1 : 0, list.userId, list.createdAt, list.updatedAt
+          list.id,
+          list.name,
+          list.color,
+          list.emoji,
+          list.isDefault ? 1 : 0,
+          list.userId,
+          toISOString(list.createdAt),
+          toISOString(list.updatedAt),
         ]
       );
     }
@@ -493,8 +660,16 @@ export class DatabaseTestHelpers {
     // Insert labels
     for (const label of dataset.labels) {
       this.db.run(
-        'INSERT INTO labels (id, name, icon, color, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [label.id, label.name, label.icon, label.color, label.userId, label.createdAt, label.updatedAt]
+        "INSERT INTO labels (id, name, icon, color, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+          label.id,
+          label.name,
+          label.icon,
+          label.color,
+          label.userId,
+          toISOString(label.createdAt),
+          toISOString(label.updatedAt),
+        ]
       );
     }
 
@@ -502,26 +677,39 @@ export class DatabaseTestHelpers {
     for (const task of dataset.tasks) {
       this.db.run(
         `INSERT INTO tasks (
-          id, name, description, date, deadline, estimate, actual_time, 
-          priority, status, user_id, list_id, parent_task_id, position, 
+          id, name, description, date, deadline, estimate, actual_time,
+          priority, status, user_id, list_id, parent_task_id, position,
           is_recurring, recurring_pattern, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          task.id, task.name, task.description, task.date, task.deadline, 
-          task.estimate, task.actualTime, task.priority, task.status, 
-          task.userId, task.listId, task.parentTaskId, task.position,
-          task.isRecurring ? 1 : 0, task.recurringPattern ? JSON.stringify(task.recurringPattern) : null,
-          task.createdAt, task.updatedAt
+          task.id,
+          task.name,
+          task.description,
+          toISOString(task.date),
+          toISOString(task.deadline),
+          task.estimate,
+          task.actualTime,
+          task.priority,
+          task.status,
+          task.userId,
+          task.listId,
+          task.parentTaskId,
+          task.position,
+          task.isRecurring ? 1 : 0,
+          task.recurringPattern ? JSON.stringify(task.recurringPattern) : null,
+          toISOString(task.createdAt),
+          toISOString(task.updatedAt),
         ]
       );
     }
 
     // Insert task-label relationships
     for (const label of dataset.labels) {
-      for (const task of dataset.tasks.slice(0, 2)) { // Attach first 2 tasks to each label
+      for (const task of dataset.tasks.slice(0, 2)) {
+        // Attach first 2 tasks to each label
         this.db.run(
-          'INSERT INTO task_labels (task_id, label_id, created_at) VALUES (?, ?, ?)',
-          [task.id, label.id, new Date()]
+          "INSERT INTO task_labels (task_id, label_id, created_at) VALUES (?, ?, ?)",
+          [task.id, label.id, toISOString(new Date())]
         );
       }
     }
@@ -529,10 +717,15 @@ export class DatabaseTestHelpers {
     // Insert subtasks
     for (const subtask of dataset.subtasks) {
       this.db.run(
-        'INSERT INTO subtasks (id, name, is_completed, task_id, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        "INSERT INTO subtasks (id, name, is_completed, task_id, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
         [
-          subtask.id, subtask.name, subtask.isCompleted ? 1 : 0, 
-          subtask.taskId, subtask.position, subtask.createdAt, subtask.updatedAt
+          subtask.id,
+          subtask.name,
+          subtask.isCompleted ? 1 : 0,
+          subtask.taskId,
+          subtask.position,
+          toISOString(subtask.createdAt),
+          toISOString(subtask.updatedAt),
         ]
       );
     }
@@ -540,10 +733,15 @@ export class DatabaseTestHelpers {
     // Insert reminders
     for (const reminder of dataset.reminders) {
       this.db.run(
-        'INSERT INTO reminders (id, task_id, remind_at, is_sent, method, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        "INSERT INTO reminders (id, task_id, remind_at, is_sent, method, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
         [
-          reminder.id, reminder.taskId, reminder.remindAt, 
-          reminder.isSent ? 1 : 0, reminder.method, reminder.createdAt, reminder.updatedAt
+          reminder.id,
+          reminder.taskId,
+          toISOString(reminder.remindAt),
+          reminder.isSent ? 1 : 0,
+          reminder.method,
+          toISOString(reminder.createdAt),
+          toISOString(reminder.updatedAt),
         ]
       );
     }
@@ -551,10 +749,16 @@ export class DatabaseTestHelpers {
     // Insert attachments
     for (const attachment of dataset.attachments) {
       this.db.run(
-        'INSERT INTO attachments (id, task_id, filename, original_name, mime_type, size, path, uploaded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        "INSERT INTO attachments (id, task_id, filename, original_name, mime_type, size, path, uploaded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         [
-          attachment.id, attachment.taskId, attachment.filename, attachment.originalName,
-          attachment.mimeType, attachment.size, attachment.path, attachment.uploadedAt
+          attachment.id,
+          attachment.taskId,
+          attachment.filename,
+          attachment.originalName,
+          attachment.mimeType,
+          attachment.size,
+          attachment.path,
+          toISOString(attachment.uploadedAt),
         ]
       );
     }
@@ -562,10 +766,15 @@ export class DatabaseTestHelpers {
     // Insert task history
     for (const history of dataset.taskHistory) {
       this.db.run(
-        'INSERT INTO task_history (id, task_id, action, changed_by, changes, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        "INSERT INTO task_history (id, task_id, action, changed_by, changes, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
         [
-          history.id, history.taskId, history.action, history.changedBy,
-          JSON.stringify(history.changes), history.description, history.createdAt
+          history.id,
+          history.taskId,
+          history.action,
+          history.changedBy,
+          JSON.stringify(history.changes),
+          history.description,
+          toISOString(history.createdAt),
         ]
       );
     }
@@ -574,52 +783,82 @@ export class DatabaseTestHelpers {
   /**
    * Verify test data in database
    */
-  public async verifyTestData(dataset: ReturnType<typeof TestDataFixtures.createTestDataset>): Promise<{
+  public async verifyTestData(
+    dataset: ReturnType<typeof TestDataFixtures.createTestDataset>
+  ): Promise<{
     isValid: boolean;
     errors: string[];
   }> {
     const errors: string[] = [];
 
     // Check users
-    const userCount = this.db.get('SELECT COUNT(*) as count FROM users') as { count: number };
+    const userCount = this.db.get("SELECT COUNT(*) as count FROM users") as {
+      count: number;
+    };
     if (userCount.count !== dataset.users.length) {
-      errors.push(`Expected ${dataset.users.length} users, found ${userCount.count}`);
+      errors.push(
+        `Expected ${dataset.users.length} users, found ${userCount.count}`
+      );
     }
 
     // Check lists
-    const listCount = this.db.get('SELECT COUNT(*) as count FROM lists') as { count: number };
+    const listCount = this.db.get("SELECT COUNT(*) as count FROM lists") as {
+      count: number;
+    };
     if (listCount.count !== dataset.lists.length) {
-      errors.push(`Expected ${dataset.lists.length} lists, found ${listCount.count}`);
+      errors.push(
+        `Expected ${dataset.lists.length} lists, found ${listCount.count}`
+      );
     }
 
     // Check tasks
-    const taskCount = this.db.get('SELECT COUNT(*) as count FROM tasks') as { count: number };
+    const taskCount = this.db.get("SELECT COUNT(*) as count FROM tasks") as {
+      count: number;
+    };
     if (taskCount.count !== dataset.tasks.length) {
-      errors.push(`Expected ${dataset.tasks.length} tasks, found ${taskCount.count}`);
+      errors.push(
+        `Expected ${dataset.tasks.length} tasks, found ${taskCount.count}`
+      );
     }
 
     // Check subtasks
-    const subtaskCount = this.db.get('SELECT COUNT(*) as count FROM subtasks') as { count: number };
+    const subtaskCount = this.db.get(
+      "SELECT COUNT(*) as count FROM subtasks"
+    ) as { count: number };
     if (subtaskCount.count !== dataset.subtasks.length) {
-      errors.push(`Expected ${dataset.subtasks.length} subtasks, found ${subtaskCount.count}`);
+      errors.push(
+        `Expected ${dataset.subtasks.length} subtasks, found ${subtaskCount.count}`
+      );
     }
 
     // Check reminders
-    const reminderCount = this.db.get('SELECT COUNT(*) as count FROM reminders') as { count: number };
+    const reminderCount = this.db.get(
+      "SELECT COUNT(*) as count FROM reminders"
+    ) as { count: number };
     if (reminderCount.count !== dataset.reminders.length) {
-      errors.push(`Expected ${dataset.reminders.length} reminders, found ${reminderCount.count}`);
+      errors.push(
+        `Expected ${dataset.reminders.length} reminders, found ${reminderCount.count}`
+      );
     }
 
     // Check attachments
-    const attachmentCount = this.db.get('SELECT COUNT(*) as count FROM attachments') as { count: number };
+    const attachmentCount = this.db.get(
+      "SELECT COUNT(*) as count FROM attachments"
+    ) as { count: number };
     if (attachmentCount.count !== dataset.attachments.length) {
-      errors.push(`Expected ${dataset.attachments.length} attachments, found ${attachmentCount.count}`);
+      errors.push(
+        `Expected ${dataset.attachments.length} attachments, found ${attachmentCount.count}`
+      );
     }
 
     // Check task history
-    const historyCount = this.db.get('SELECT COUNT(*) as count FROM task_history') as { count: number };
+    const historyCount = this.db.get(
+      "SELECT COUNT(*) as count FROM task_history"
+    ) as { count: number };
     if (historyCount.count !== dataset.taskHistory.length) {
-      errors.push(`Expected ${dataset.taskHistory.length} history entries, found ${historyCount.count}`);
+      errors.push(
+        `Expected ${dataset.taskHistory.length} history entries, found ${historyCount.count}`
+      );
     }
 
     return {
@@ -637,9 +876,9 @@ export class DatabaseTestHelpers {
   }> {
     const startTime = Date.now();
     const randomData = TestDataFixtures.generateRandomData(recordCount);
-    
+
     await this.insertTestData(randomData);
-    
+
     const duration = Date.now() - startTime;
     const recordsPerSecond = (recordCount / duration) * 1000;
 
@@ -709,7 +948,9 @@ export class DatabaseTestHelpers {
     `) as { count: number }[];
 
     if (invalidStatuses[0]?.count > 0) {
-      issues.push(`Found ${invalidStatuses[0].count} tasks with invalid status`);
+      issues.push(
+        `Found ${invalidStatuses[0].count} tasks with invalid status`
+      );
     }
 
     // Check for invalid priorities
@@ -719,7 +960,9 @@ export class DatabaseTestHelpers {
     `) as { count: number }[];
 
     if (invalidPriorities[0]?.count > 0) {
-      issues.push(`Found ${invalidPriorities[0].count} tasks with invalid priority`);
+      issues.push(
+        `Found ${invalidPriorities[0].count} tasks with invalid priority`
+      );
     }
 
     return {
@@ -728,3 +971,25 @@ export class DatabaseTestHelpers {
     };
   }
 }
+
+export const createTestDatabaseAPI = (config?: TestDatabaseConfig) => {
+  const manager = new TestDatabaseManager(config);
+  const db = manager.getDatabase();
+
+  return {
+    createUser: (overrides: Partial<User> = {}) =>
+      TestDataFixtures.createUser(overrides),
+    createList: (overrides: Partial<List> = {}) =>
+      TestDataFixtures.createList(overrides),
+    createTask: (overrides: Partial<Task> = {}) =>
+      TestDataFixtures.createTask(overrides),
+    createLabel: (overrides: Partial<Label> = {}) =>
+      TestDataFixtures.createLabel(overrides),
+    createTestDataset: () => TestDataFixtures.createTestDataset(),
+    generateRandomData: (count: number) =>
+      TestDataFixtures.generateRandomData(count),
+    manager: () => manager,
+    helpers: () => new DatabaseTestHelpers(db),
+    api: db,
+  };
+};

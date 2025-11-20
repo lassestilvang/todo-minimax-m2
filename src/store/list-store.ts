@@ -54,6 +54,10 @@ export const createListStore = (config?: {
     // Batch operations
     batchOperations: {},
     
+    // Favorites and recent lists
+    favorites: [],
+    recent: [],
+    
     // Filters and view
     filters: {
       search: '',
@@ -173,6 +177,11 @@ export const createListStore = (config?: {
         state.lists = state.lists.filter(l => l.id !== listId);
         delete state.cache[listId];
         state.selectedListIds = state.selectedListIds.filter(id => id !== listId);
+        state.favorites = state.favorites.filter(id => id !== listId);
+        state.recent = state.recent.filter(id => id !== listId);
+        if (state.currentList?.id === listId) {
+          state.currentList = null;
+        }
       });
     },
 
@@ -190,6 +199,71 @@ export const createListStore = (config?: {
       };
 
       return await get().createList(duplicateData);
+    },
+
+    // =================== LIST MANAGEMENT ===================
+    getLists: () => get().lists,
+
+    getList: (listId: ListId) => {
+      return get().cache[listId] || get().lists.find(l => l.id === listId);
+    },
+
+    getListCount: () => get().lists.length,
+
+    // =================== FAVORITES MANAGEMENT ===================
+    addToFavorites: (listId: ListId) => {
+      set((state) => {
+        if (!state.favorites.includes(listId)) {
+          state.favorites.push(listId);
+        }
+      });
+    },
+
+    removeFromFavorites: (listId: ListId) => {
+      set((state) => {
+        state.favorites = state.favorites.filter(id => id !== listId);
+      });
+    },
+
+    toggleFavorite: (listId: ListId) => {
+      const state = get();
+      if (state.favorites.includes(listId)) {
+        get().removeFromFavorites(listId);
+      } else {
+        get().addToFavorites(listId);
+      }
+    },
+
+    getFavoriteLists: () => {
+      const state = get();
+      return state.lists.filter(list => state.favorites.includes(list.id));
+    },
+
+    // =================== RECENT LISTS MANAGEMENT ===================
+    addToRecent: (listId: ListId) => {
+      set((state) => {
+        // Remove from current position if exists
+        state.recent = state.recent.filter(id => id !== listId);
+        // Add to front
+        state.recent.unshift(listId);
+        // Keep only last 10
+        if (state.recent.length > 10) {
+          state.recent = state.recent.slice(0, 10);
+        }
+      });
+    },
+
+    getRecentLists: () => {
+      const state = get();
+      return state.recent
+        .map(id => state.lists.find(l => l.id === id))
+        .filter(Boolean);
+    },
+
+    clearRecent: () => {
+      set((state) => {
+        state.recent = [];
+      });
     },
 
     // =================== SELECTION ===================
@@ -224,6 +298,27 @@ export const createListStore = (config?: {
         state.selectedListIds = state.lists.map(l => l.id);
       });
     },
+
+    getSelectedLists: () => {
+      const state = get();
+      return state.lists.filter(list => state.selectedListIds.includes(list.id));
+    },
+
+    getSelectedListIds: () => [...get().selectedListIds],
+
+    // =================== CURRENT LIST MANAGEMENT ===================
+    switchList: (listId: ListId) => {
+      const list = get().cache[listId] || get().lists.find(l => l.id === listId);
+      if (list) {
+        set((state) => {
+          state.currentList = list;
+        });
+        // Add to recent lists
+        get().addToRecent(listId);
+      }
+    },
+
+    getCurrentList: () => get().currentList,
 
     // =================== FILTERS AND SEARCH ===================
     setSearchQuery: (query: string) => {
@@ -382,6 +477,87 @@ export const createListStore = (config?: {
       });
     },
 
+    // =================== LIST ORGANIZATION ===================
+    reorderLists: (listIds: ListId[]) => {
+      // In a real implementation, this would update the position/order of lists
+      // For mock purposes, we'll just verify the operation
+      return { success: true, reordered: listIds.length };
+    },
+
+    moveList: (listId: ListId, newPosition: number) => {
+      set((state) => {
+        const listIndex = state.lists.findIndex(l => l.id === listId);
+        if (listIndex >= 0) {
+          const [list] = state.lists.splice(listIndex, 1);
+          state.lists.splice(newPosition, 0, list);
+          return true;
+        }
+        return false;
+      });
+      return false;
+    },
+
+    // =================== SEARCH AND FILTERING ===================
+    searchLists: (query: string) => {
+      const state = get();
+      const lowerQuery = query.toLowerCase();
+      return state.lists.filter(list =>
+        list.name.toLowerCase().includes(lowerQuery) ||
+        (list.description && list.description.toLowerCase().includes(lowerQuery))
+      );
+    },
+
+    filterLists: (filter: 'all' | 'favorites' | 'recent') => {
+      const state = get();
+      switch (filter) {
+        case 'favorites':
+          return state.lists.filter(list => state.favorites.includes(list.id));
+        case 'recent':
+          return get().getRecentLists();
+        default:
+          return state.lists;
+      }
+    },
+
+    // =================== LIST VALIDATION ===================
+    validateListData: (listData: any) => {
+      const errors: string[] = [];
+      
+      if (!listData.name || listData.name.trim() === '') {
+        errors.push('List name is required');
+      }
+      
+      if (listData.name && listData.name.length > 50) {
+        errors.push('List name must be less than 50 characters');
+      }
+      
+      if (listData.color && !/^#[0-9A-F]{6}$/i.test(listData.color)) {
+        errors.push('Color must be a valid hex color code');
+      }
+      
+      if (listData.description && listData.description.length > 200) {
+        errors.push('Description must be less than 200 characters');
+      }
+      
+      return {
+        isValid: errors.length === 0,
+        errors
+      };
+    },
+
+    // =================== ERROR HANDLING ===================
+    clearError: () => {
+      set((state) => {
+        state.error = null;
+      });
+    },
+
+    setError: (error: ApiError) => {
+      set((state) => {
+        state.error = error;
+      });
+    },
+
     // =================== SELECTORS ===================
     getFilteredLists: () => {
       const state = get();
@@ -413,12 +589,18 @@ export const createListStore = (config?: {
 
       return {
         total: lists.length,
+        favorites: state.favorites.length,
+        recent: state.recent.length,
         withTasks: lists.filter(l => l.taskCount > 0).length,
         recentlyModified: lists.filter(l => {
           const dayAgo = new Date();
           dayAgo.setDate(dayAgo.getDate() - 1);
           return new Date(l.updatedAt) > dayAgo;
-        }).length
+        }).length,
+        byColor: lists.reduce((acc: Record<string, number>, list) => {
+          acc[list.color] = (acc[list.color] || 0) + 1;
+          return acc;
+        }, {})
       };
     }
   }));

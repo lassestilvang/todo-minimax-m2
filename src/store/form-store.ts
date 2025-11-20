@@ -13,7 +13,7 @@ import type {
  */
 export const createFormStore = () => {
   // Initial state
-  const initialState: FormStoreState = {
+  const initialState = {
     // Form data
     forms: {},
     
