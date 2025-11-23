@@ -3,10 +3,11 @@
  */
 
 import { create } from 'zustand';
-import type { 
+import { immer } from 'zustand/middleware/immer';
+import type {
   ListStoreState,
   ListStoreActions,
-  ListStoreSelectors 
+  ListStoreSelectors
 } from '../types/store';
 import type { 
   AppList, 
@@ -70,7 +71,8 @@ export const createListStore = (config?: {
     }
   };
 
-  return create<ListStoreState & ListStoreActions & ListStoreSelectors>((set, get) => ({
+  return create<ListStoreState & ListStoreActions & ListStoreSelectors>(
+    immer((set, get) => ({
     ...initialState,
 
     // =================== DATA LOADING ===================
@@ -603,7 +605,8 @@ export const createListStore = (config?: {
         }, {})
       };
     }
-  }));
+  }))
+  );
 };
 
 // Export the store instance
