@@ -3,6 +3,7 @@
  */
 
 import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
 import type {
   AppStoreState,
   AppStoreActions,
@@ -57,7 +58,7 @@ export const createAppStore = (config?: { userId?: string }) => {
   };
 
   return create<AppStoreState & AppStoreActions & AppStoreSelectors>(
-    (set, get) => ({
+    immer((set, get) => ({
       ...initialState,
 
       // =================== USER MANAGEMENT ===================
@@ -379,7 +380,7 @@ export const createAppStore = (config?: { userId?: string }) => {
         }
         return state.theme === "dark";
       },
-    })
+    }))
   );
 };
 

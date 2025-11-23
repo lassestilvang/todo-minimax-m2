@@ -24,8 +24,8 @@ describe('App Store Fix Verification', () => {
 
   test('loadUser should not throw TypeError', async () => {
     // This was the function causing the TypeErrors
-    await expect(store.getState().loadUser()).resolves.toBeDefined();
-    
+    await expect(store.getState().loadUser()).resolves.toBeUndefined();
+
     const state = store.getState();
     expect(state.user).toBeDefined();
     expect(state.isAuthenticated).toBe(true);
@@ -46,9 +46,9 @@ describe('App Store Fix Verification', () => {
 
   test('login should not throw TypeError', async () => {
     const credentials = { email: 'test@example.com', password: 'password' };
-    
-    await expect(store.getState().login(credentials)).resolves.toBeDefined();
-    
+
+    await expect(store.getState().login(credentials)).resolves.toBeUndefined();
+
     const state = store.getState();
     expect(state.user).toBeDefined();
     expect(state.loading.user).toBe(false);
