@@ -44,6 +44,8 @@ const createMockListStore = () => {
     cache: Record<string, MockList>;
   }
 
+  let idCounter = 0;
+
   const state: MockState = {
     lists: [],
     currentList: null,
@@ -64,7 +66,7 @@ const createMockListStore = () => {
     // List CRUD operations
     createList: async (listData: any) => {
       const list: MockList = {
-        id: `list-${Date.now()}`,
+        id: `list-${++idCounter}`,
         ...listData,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -344,6 +346,7 @@ describe("ListStore Logic Tests", () => {
     listStore.state.recent = [];
     listStore.state.error = null;
     listStore.state.currentList = null;
+    listStore.state.cache = {};
   });
 
   describe("List CRUD Operations", () => {
@@ -357,7 +360,7 @@ describe("ListStore Logic Tests", () => {
         isDefault: false,
       };
 
-      const createdList = await listStore.actions.createList(listData);
+      const createdList = await listStore.createList(listData);
 
       expect(createdList).toBeDefined();
       expect(createdList.id).toBeDefined();
@@ -371,11 +374,11 @@ describe("ListStore Logic Tests", () => {
       expect(createdList.updatedAt).toBeInstanceOf(Date);
 
       // Verify list is in store
-      expect(listStore.state.lists).toHaveLength(1);
-      expect(listStore.state.lists[0]).toEqual(createdList);
+      expect(listStore.getLists()).toHaveLength(1);
+      expect(listStore.getLists()[0]).toEqual(createdList);
 
       // Verify cache
-      expect(listStore.state.cache[createdList.id]).toEqual(createdList);
+      expect(listStore.getList(createdList.id)).toEqual(createdList);
     });
 
     test("should update existing list", async () => {

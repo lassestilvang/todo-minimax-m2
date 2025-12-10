@@ -410,6 +410,14 @@ export const createTaskSchema = {
   position: "number",
 };
 
+// Export createLabelSchema for compatibility
+export const createLabelSchema = {
+  name: "string",
+  color: "string",
+  icon: "string",
+  user_id: "string",
+};
+
 // Utility functions for schema operations
 export class SchemaUtils {
   static validateTableName(tableName: string): boolean {
