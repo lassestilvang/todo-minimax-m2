@@ -339,10 +339,6 @@ export const createTaskStore = (config?: { userId?: string }) => {
           set((state) => {
             if (!state.filters.priority.includes(priority)) {
               state.filters.priority.push(priority);
-
-              state.filters.priority = state.filters.priority.filter(
-                (p) => p !== priority
-              );
             }
           });
         },
