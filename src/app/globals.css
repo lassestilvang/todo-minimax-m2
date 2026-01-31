@@ -121,11 +121,17 @@
 }
 
 /* View Transition API pseudo-elements */
-::view-transition-old(view-out-*) {
+::view-transition-old(view-out-today),
+::view-transition-old(view-out-next7),
+::view-transition-old(view-out-upcoming),
+::view-transition-old(view-out-all) {
   animation: view-out 0.3s ease-in-out;
 }
 
-::view-transition-new(view-in-*) {
+::view-transition-new(view-in-today),
+::view-transition-new(view-in-next7),
+::view-transition-new(view-in-upcoming),
+::view-transition-new(view-in-all) {
   animation: view-in 0.3s ease-in-out;
 }
 
